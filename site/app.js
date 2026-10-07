@@ -1051,7 +1051,8 @@ async function route(fresh = true) {
   onResize = null;
   hideTip();
   const [, page, anchor] = (location.hash || "#/").split("/");
-  const section = page === "where" || page === "method" ? page : "track";
+  // The Method page is switched off for now; add "method" back here and in the nav to bring it back.
+  const section = page === "where" ? page : "track";
   regionSelect.parentElement.hidden = section === "method";
   document.querySelectorAll("[data-nav]").forEach((link) => link.toggleAttribute("aria-current", link.dataset.nav === section));
   try {

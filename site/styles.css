@@ -86,7 +86,7 @@ main { padding-top: calc(var(--nav-height) + 1rem); min-height: 80vh; }
   transition: background 200ms ease, color 200ms ease;
 }
 .site-nav__back:hover { color: var(--text); background: var(--on-nav); }
-.site-nav__brand { font-family: var(--display); font-size: 1.05rem; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.site-nav__brand { font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; }
 .site-nav__links { display: flex; gap: 0.15rem; margin: 0; padding: 0.3rem; list-style: none; }
 .site-nav__links a {
   display: block; padding: 0.4rem 0.85rem; border-radius: 999px;
@@ -199,7 +199,7 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 /* ---------- Bar race ---------- */
 
 .race { position: relative; }
-.race__year { position: absolute; right: 0; bottom: 0.5rem; font: 400 clamp(3rem, 9vw, 6.5rem)/1 var(--display); color: rgba(61, 44, 23, 0.08); pointer-events: none; }
+.race__year { position: absolute; right: 0; bottom: 3.75rem; font: 400 clamp(3rem, 9vw, 6.5rem)/1 var(--display); color: rgba(61, 44, 23, 0.3); pointer-events: none; }
 .race__rows { position: relative; height: calc(var(--rows) * 2.6rem); }
 .race__row {
   position: absolute; left: 0; right: 0; top: 0; height: 2.2rem;
