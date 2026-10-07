@@ -1,0 +1,22 @@
+# Secrets — never commit
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Raw API downloads (kept locally as a cache; the database holds them too)
+raw/
+
+# Azure Functions build output
+function_app/.build/
+.python_packages/
+
+# macOS
+.DS_Store
+*.log
+.claude/
+function_app/app.zip

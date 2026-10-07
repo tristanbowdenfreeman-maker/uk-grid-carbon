@@ -1,0 +1,7 @@
+requests>=2.32
+python-dotenv>=1.0
+pymssql>=2.3
+SQLAlchemy>=2.0
+pandas>=2.2
+azure-storage-blob>=12.20
+pytest>=8.0
