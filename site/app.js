@@ -289,7 +289,6 @@ async function renderTrack(ticket) {
   const years = annual.filter((r) => /^\d{4}$/.test(r.period)).map((r) => ({ ...r, year: Number(r.period) }));
   const lastPeriod = new Date(t.last_period_utc);
   const fullYears = years.filter((r) => r.year < lastPeriod.getUTCFullYear());
-  const change = t.clean_l12m - t.clean_p12m;
   const picked = state.region !== 18 ? regionL12m(regions, state.region) : null;
   const build = buildOut(capacity);
   const gap = build.find((b) => b.tech === "Offshore wind") ?? build.at(-1);
@@ -307,8 +306,6 @@ async function renderTrack(ticket) {
           <span class="progress__mark" style="--x:${TARGET}%"><span>2030 target</span></span>
           <div class="progress__scale"><span>0%</span><span>100%</span></div>
         </div>
-        <p>${change >= 0 ? "Up" : "Down"} ${num(Math.abs(change))} point${Math.round(Math.abs(change)) === 1 ? "" : "s"} on the year before.
-          (The government's own measure, which leaves out a few fuels, put 2025 at ${num(OFFICIAL_2025)}%.)</p>
         ${picked ? `<p class="region-note">${esc(regionName(state.region))} ran on ${pct(picked.clean_pct)} clean power over the same 12 months.</p>` : ""}
       </div>
       <aside class="live" aria-live="polite"><div class="live__label"><span class="live__dot"></span>Right now</div><p class="faint">Loading…</p></aside>
