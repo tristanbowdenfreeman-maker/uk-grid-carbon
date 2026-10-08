@@ -80,12 +80,10 @@ const hourLabel = (h) => `${String(h % 24).padStart(2, "0")}:00`;
 const ampm = (h) => `${h % 12 || 12}${h < 12 ? "am" : "pm"}`;
 const ukDate = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", day: "numeric", month: "short", year: "numeric" });
 const ukClock = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" });
-const TIMES = { 1: "as", 2: "twice", 3: "three times", 4: "four times", 5: "five times", 6: "six times" };
-const times = (x) => TIMES[Math.round(x)] ?? `${num(x, 1)} times`;
-const GREW = { 2: "doubled", 3: "tripled", 4: "quadrupled" };
-const grew = (x) => GREW[Math.round(x)] ?? `grown ${num(x, 1)} times`;
 const listOf = (items) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// Starts a finding with the picked region's name, or leaves it as it is for Great Britain.
+const inRegion = (text, id = state.region) => (id === 18 ? capital(text) : `In ${regionName(id)}, ${text}`);
 const regionName = (id) => REGIONS[id] ?? `Region ${id}`;
 const compactRows = (n) => (n >= 1e6 ? `${Math.floor(n / 1e6)}M+` : num(n));
 
@@ -314,8 +312,8 @@ async function renderTrack(ticket) {
 
     <section class="card reveal" id="trajectory">
       <div class="card-head"><div>
-        <h2>Clean power since 2009</h2>
-        <p class="lede">It has ${grew(t.clean_l12m / t.clean_2009)}, but it needs to grow ${times(t.pace_ratio)} faster to hit 95% by 2030.</p>
+        <h2>Clean share by year</h2>
+        <p class="lede">It rose from ${pct(t.clean_2009)} in 2009 to ${pct(t.clean_l12m)}. At the current pace it reaches about ${pct(t.projected_2030)} by 2030, not ${TARGET}%.</p>
       </div></div>
       <div class="chart" id="trajectory-chart"></div>
       <ul class="legend">
@@ -328,7 +326,7 @@ async function renderTrack(ticket) {
 
     <section class="card reveal" id="race">
       <div class="card-head"><div>
-        <h2>Where our electricity comes from</h2>
+        <h2>Generation by fuel</h2>
         <p class="lede">${raceHeadline(fullYears)}</p>
       </div></div>
       <div class="race"></div>
@@ -336,8 +334,8 @@ async function renderTrack(ticket) {
 
     <section class="card reveal" id="regions">
       <div class="card-head"><div>
-        <h2>Clean power by region</h2>
-        <p class="lede">${esc(local[0].region_name)} is the cleanest at ${pct(local[0].clean_pct)}. ${esc(local.at(-1).region_name)} is the least clean at ${pct(local.at(-1).clean_pct)}. Click a region to filter the page.</p>
+        <h2>Clean share by region</h2>
+        <p class="lede">${esc(local[0].region_name)} is the cleanest at ${pct(local[0].clean_pct)}. ${esc(local.at(-1).region_name)} is the least clean at ${pct(local.at(-1).clean_pct)}. <span class="lede__hint">Click a region to filter the page.</span></p>
       </div></div>
       <div class="map-layout map-layout--small">
         <div class="map${state.region !== 18 ? " has-pick" : ""}">${mapSvg(map, l12m, state.region)}</div>
@@ -353,7 +351,7 @@ async function renderTrack(ticket) {
 
     <section class="card reveal" id="build">
       <div class="card-head"><div>
-        <h2>Building for 2030</h2>
+        <h2>Capacity vs the 2030 target</h2>
         <p class="lede">${buildHeadline(build)}</p>
       </div></div>
       <div class="build">
@@ -371,8 +369,10 @@ async function renderTrack(ticket) {
     </section>
 
     <section class="card reveal verdict" id="verdict">
-      <p class="eyebrow">Summary</p>
-      <h2>Building is mostly on track. <span class="bad">${esc(gap.tech)} and gas aren't.</span></h2>
+      <div class="card-head"><div>
+        <h2>2030 outlook</h2>
+        <p class="lede">Building is mostly on track. <span class="bad">${esc(gap.tech)} and gas aren't.</span></p>
+      </div></div>
       <div class="facts">
         ${build.filter((b) => b.ratio >= 1).slice(0, 1).map((b) => `<div class="fact" style="--c:var(--green)"><strong>${pct(b.ratio * 100)}</strong><span>of the ${b.tech.toLowerCase()} 2030 needs are on course to be built. Ahead of plan.</span></div>`).join("")}
         <div class="fact" style="--c:var(--rust)"><strong>${num(gap.outlook)} of ${num(gap.target)} GW</strong><span>${esc(gap.tech.toLowerCase())} on course for 2030. It's the biggest gap.</span></div>
@@ -475,7 +475,7 @@ function raceHeadline(years) {
   const coalPeak = years.reduce((a, b) => (b.coal_pct > a.coal_pct ? b : a));
   const latest = years.at(-1);
   const coalNow = latest.coal_pct < 0.5 ? "zero" : pct(latest.coal_pct);
-  return `Coal went from ${pct(coalPeak.coal_pct)} to ${coalNow}. Wind went from ${pct(years[0].wind_pct)} to ${pct(latest.wind_pct)}.`;
+  return `Coal fell from ${pct(coalPeak.coal_pct)} to ${coalNow} while wind grew from ${pct(years[0].wind_pct)} to ${pct(latest.wind_pct)}.`;
 }
 
 function bar_race(el, years, lastPeriod) {
@@ -592,12 +592,12 @@ function buildHeadline(build) {
   const ahead = by("on pace");
   const worst = build.reduce((a, b) => (b.ratio < a.ratio ? b : a));
   const close = by("a little behind").filter((n) => n !== worst.tech.toLowerCase());
-  const parts = [];
   const verb = (names) => (names.length > 1 || names[0].endsWith("s") ? "are" : "is");
-  if (ahead.length) parts.push(`${capital(listOf(ahead))} ${verb(ahead)} on pace.`);
-  if (close.length) parts.push(`${capital(listOf(close))} ${verb(close)} close.`);
-  parts.push(`${worst.tech} is the gap: ${num(worst.built)} GW built, ${num(worst.target)} GW needed.`);
-  return parts.join(" ");
+  const good = [];
+  if (ahead.length) good.push(`${listOf(ahead)} ${verb(ahead)} on pace`);
+  if (close.length) good.push(`${listOf(close)} ${verb(close)} close`);
+  const behind = `${worst.tech} is furthest behind, with ${num(worst.built)} GW built and ${num(worst.target)} GW needed.`;
+  return good.length ? `${capital(good.join(", and "))}. ${behind}` : behind;
 }
 
 function buildRow(b) {
@@ -680,7 +680,6 @@ async function renderWhere(ticket) {
   const worst = local.at(-1);
   const scotland = l12m.find((r) => r.region_id === 16);
   const id = state.region;
-  const name = regionName(id);
 
   view.innerHTML = `<div class="page">
     <div class="band">
@@ -694,8 +693,8 @@ async function renderWhere(ticket) {
 
     <section class="card reveal" id="map">
       <div class="card-head"><div>
-        <h2>Clean power by region</h2>
-        <p class="lede">${esc(best.region_name)} runs on ${pct(best.clean_pct)} clean power. ${esc(worst.region_name)} is at ${pct(worst.clean_pct)}. Click a region to filter the page.</p>
+        <h2>Clean share by region</h2>
+        <p class="lede">${esc(best.region_name)} runs on ${pct(best.clean_pct)} clean power. ${esc(worst.region_name)} is at ${pct(worst.clean_pct)}. <span class="lede__hint">Click a region to filter the page.</span></p>
       </div></div>
       <div class="map-layout">
         <div class="map${id !== 18 ? " has-pick" : ""}">${mapSvg(map, l12m, id)}</div>
@@ -710,8 +709,8 @@ async function renderWhere(ticket) {
 
     <section class="card reveal" id="wind">
       <div class="card-head"><div>
-        <h2>Calm and windy days</h2>
-        <p class="lede">${esc(name)}: ${windHeadline(wind.filter((w) => w.region_id === id)).replace(/^./, (c) => c.toLowerCase())}</p>
+        <h2>Gas share and price by wind speed</h2>
+        <p class="lede">${esc(windHeadline(wind.filter((w) => w.region_id === id)))}</p>
       </div></div>
       <div class="tiles">${wind.filter((w) => w.region_id === id).map(windTile).join("")}</div>
     </section>
@@ -719,8 +718,8 @@ async function renderWhere(ticket) {
     <section class="card reveal" id="day">
       <div class="card-head">
         <div>
-          <h2>An average day</h2>
-          <p class="lede">${esc(name)}: <span id="day-headline"></span></p>
+          <h2>Clean share and price by hour</h2>
+          <p class="lede" id="day-headline"></p>
         </div>
         ${tabs(["Winter", "Summer"], state.season, "Season")}
       </div>
@@ -733,7 +732,7 @@ async function renderWhere(ticket) {
     </section>
 
     <section class="card reveal" id="so-what">
-      <h2 class="actions-title">What would help</h2>
+      <h2 class="actions-title">Recommendations</h2>
       <div class="actions">
         <article class="action"><span class="num">1</span><h3>Build offshore faster</h3>
           <p>It's the biggest gap to 2030. Today's plans fall well short of what the target needs.</p>
@@ -778,9 +777,9 @@ function windHeadline(bands) {
   const calm = bands.find((b) => b.band === "Calm");
   const windy = bands.find((b) => b.band === "Windy");
   if (!calm || !windy) return "How the wind changes the mix.";
-  if (calm.gas_pct > windy.gas_pct && calm.price > windy.price) return "Calm days burn more gas and cost more.";
-  if (calm.gas_pct > windy.gas_pct) return "Calm days burn more gas.";
-  return "Here the wind makes little difference to gas.";
+  const dearer = Math.round(calm.price - windy.price);
+  return inRegion(`gas made ${pct(calm.gas_pct)} of power on calm days and ${pct(windy.gas_pct)} on windy ones`
+    + (dearer >= 1 ? `, and power cost about ${dearer}p per kWh more when it was calm.` : "."));
 }
 
 function windTile(w) {
@@ -803,9 +802,9 @@ function drawDay(rows) {
   const dearest = rows.reduce((a, b) => (b.price > a.price ? b : a));
   const cleanest = rows.reduce((a, b) => (b.clean_pct > a.clean_pct ? b : a));
   const inPeak = (h) => h >= 16 && h < 19;
-  headline.textContent = inPeak(dirtiest.hour_uk) && inPeak(dearest.hour_uk)
-    ? `${cleanest.hour_uk >= 10 && cleanest.hour_uk <= 15 ? "midday" : "night"} is cleanest. The 4–7pm peak is the dirtiest and the most expensive.`
-    : `cleanest around ${ampm(cleanest.hour_uk)}, dirtiest around ${ampm(dirtiest.hour_uk)} and dearest around ${ampm(dearest.hour_uk)}.`;
+  headline.textContent = inRegion(inPeak(dirtiest.hour_uk) && inPeak(dearest.hour_uk)
+    ? `the grid is cleanest ${cleanest.hour_uk >= 10 && cleanest.hour_uk <= 15 ? "around midday" : "at night"}, and dirtiest and most expensive from 4 to 7pm.`
+    : `the grid is cleanest around ${ampm(cleanest.hour_uk)}, dirtiest around ${ampm(dirtiest.hour_uk)} and most expensive around ${ampm(dearest.hour_uk)}.`);
   const priceMax = Math.ceil(Math.max(...rows.map((r) => r.price)) / 10) * 10;
   const yMax = 100;
   const narrow = el.clientWidth < 560;
