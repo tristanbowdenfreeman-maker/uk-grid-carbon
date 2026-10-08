@@ -281,8 +281,8 @@ const regionL12m = (summary, id) => summary.find((r) => r.period === "L12M" && r
 // ---------- Page 1: Are we on track? ----------
 
 async function renderTrack(ticket) {
-  const [annual, onTrack, capacity, regions, map, stack] = await Promise.all([
-    load("gb_annual"), load("on_track"), load("capacity"), load("region_summary"), loadMap(), powerLine(),
+  const [annual, onTrack, capacity, regions, map] = await Promise.all([
+    load("gb_annual"), load("on_track"), load("capacity"), load("region_summary"), loadMap(),
   ]);
   if (ticket !== navigation) return;
   const t = onTrack[0];
@@ -310,7 +310,6 @@ async function renderTrack(ticket) {
       </div>
       <aside class="live" aria-live="polite"><div class="live__label"><span class="live__dot"></span>Right now</div><p class="faint">Loading…</p></aside>
     </section>
-    ${stack}
     </div>
 
     <section class="card reveal" id="trajectory">
@@ -671,8 +670,8 @@ function drawBuildDetail(detail, capacity) {
 // ---------- Page 2: Where and when? ----------
 
 async function renderWhere(ticket) {
-  const [regions, profile, wind, map, stack] = await Promise.all([
-    load("region_summary"), load("region_profile"), load("region_wind"), loadMap(), powerLine(),
+  const [regions, profile, wind, map] = await Promise.all([
+    load("region_summary"), load("region_profile"), load("region_wind"), loadMap(),
   ]);
   if (ticket !== navigation) return;
   const l12m = regions.filter((r) => r.period === "L12M");
@@ -691,7 +690,6 @@ async function renderWhere(ticket) {
         <h1>Regions and times of day<span class="soft">Some places and hours are much cleaner than others.</span></h1>
       </div>
     </section>
-    ${stack}
     </div>
 
     <section class="card reveal" id="map">
@@ -1083,6 +1081,6 @@ window.addEventListener("scroll", onScroll, { passive: true });
 new ResizeObserver(onScroll).observe(document.body);
 
 load("meta").then((meta) => {
-  document.getElementById("updated").textContent = `Data updated ${ukDate.format(new Date(meta.exported_at))}.`;
+  document.getElementById("updated").textContent = `Updated every morning from seven public data sources, including the grid operator NESO and Octopus Energy. Last updated ${ukDate.format(new Date(meta.exported_at))}.`;
 }).catch(() => {});
 route();

@@ -402,6 +402,7 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 .footer a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
 .footer .credit { margin: 0 0 1rem; color: var(--text); font: 400 1.35rem/1.1 var(--display); letter-spacing: 0.03em; text-transform: uppercase; }
 .footer .credit a { color: var(--accent); text-decoration: none; }
+.footer .updated { color: var(--text); font-size: 1rem; }
 .footer .legal { color: var(--faint); font-size: 0.8rem; }
 
 /* ---------- Small screens ---------- */
