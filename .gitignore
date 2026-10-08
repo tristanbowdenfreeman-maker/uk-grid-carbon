@@ -1,4 +1,4 @@
-# Secrets — never commit
+# Secrets, never commit
 .env
 
 # Python
@@ -18,5 +18,4 @@ function_app/.build/
 # macOS
 .DS_Store
 *.log
-.claude/
 function_app/app.zip

@@ -1,10 +1,10 @@
 # Clean Power 2030
 
-**Is Britain on track for 95% clean electricity by 2030?** This project answers that from every
-half-hour of Great Britain's generation since 2009, NESO's capacity plans set against the
-government's Clean Power 2030 target, and eight years of regional mix, Octopus Agile prices and
-weather. That's over 30 million rows, refreshed every morning by an Azure pipeline and shown in a
-two-page interactive dashboard.
+I built this to see whether Britain is on track for the government's target of 95% clean
+electricity by 2030. It uses every half-hour of Great Britain's generation since 2009, NESO's
+capacity plans set against the Clean Power 2030 target, and eight years of regional mix, Octopus
+Agile prices and weather. That's over 30 million rows, refreshed every morning by an Azure
+pipeline and shown in a two-page interactive dashboard.
 
 **Live:** https://tristanbowdenfreeman-maker.github.io/tiny-summit/carbon/ (part of my
 [portfolio](https://tristanbowdenfreeman-maker.github.io/tiny-summit/))
@@ -12,14 +12,16 @@ two-page interactive dashboard.
 ## What it finds
 
 - About 68% of the electricity generated in Britain over the last 12 months came from clean
-  sources (wind, solar, nuclear, biomass and hydro). The target is 95% by 2030.
-- Clean power has tripled since 2009, but at the pace of the last seven years (about 2 points a
-  year) Britain reaches roughly 76% by 2030. Hitting 95% takes about three times that pace.
-- Coal went from 44% of generation in 2012 to nothing. Wind went from 1% in 2009 to 35%.
-- Batteries are ahead of plan and solar is close. Offshore wind is the big gap: about 16 GW built
-  and 34 GW on course for 2030, against 43 GW needed. Onshore wind is behind too.
-- North Scotland's power is almost all clean while South Wales leans on gas. Calm weather means
-  more gas and higher prices, and the 4–7pm evening peak is the dirtiest and dearest time of day.
+  sources (wind, solar, nuclear, biomass and hydro), up from 23% in 2009. The target is 95% by 2030.
+- Over the last seven years the clean share has gone up by about 2 points a year. At that pace it
+  reaches about 77% by 2030. Getting to 95% would take about 6 points a year.
+- Coal fell from 44% of generation in 2012 to zero, while wind grew from 1% in 2009 to 35%.
+- Batteries are on pace, and onshore wind and solar are close. Offshore wind is furthest behind,
+  with about 16 GW built and 34 GW expected by 2030, against 43 GW needed.
+- South Scotland's power is 99% clean and South West England's is 35%, with most of the rest
+  from gas. Across Britain, gas made 41% of power on calm days and 16% on windy ones, and power
+  cost about 11p per kWh more when it was calm. The grid is dirtiest and most expensive from 4 to
+  7pm.
 
 The site's figures update with the data, so they may have moved on from these.
 
@@ -33,14 +35,14 @@ The site's figures update with the data, so they may have moved on from these.
   so one unusual year doesn't swing it. **Needed pace** is the straight line from the last 12
   months to 95% in mid-2030.
 - **The 2030 projection is a straight line.** Real growth comes in steps as big wind farms
-  connect, so it shows the size of the gap rather than forecasting the path.
+  connect, so the line is there to show the size of the gap and isn't a forecast.
 - **It isn't the official figure.** DESNZ put 2025 at 73% using different source data and a
   slightly different set of fuels. This project measures every year the same way, so the trend is
   comparable even though the level differs.
-- **Regional mixes are modelled** by the Carbon Intensity API, not metered. **Prices** are one
+- **Regional mixes are estimates** from the Carbon Intensity API's power-flow model. **Prices** are one
   retail tariff that tracks the wholesale market. **Weather** is one point per region.
 - **Gaps in the source data** (a few hundred missing half-hours from the APIs, each under 0.5%)
-  are counted by the data checks and listed on the site's Method page.
+  are counted by the data checks in [5_checks](sql/5_checks).
 
 ## Data model
 
@@ -101,15 +103,16 @@ Open-Meteo (ERA5)    ─┘   (Python, timer)    │     T-SQL stored procedures
    least-squares slope in T-SQL), capacity against target, regional clean shares, and each
    region's half-hours joined to price and wind ([08_v_region_half_hour.sql](sql/4_marts/08_v_region_half_hour.sql)).
 4. **Data-quality checks** run next. A blocking failure stops the export, so the site keeps its
-   last good data; non-blocking ones (gaps in the source) are shown on the site.
+   last good data. Non-blocking ones (gaps in the source) are saved with the export
+   (`data_checks.json`) and the export goes ahead.
 5. **The export** writes each mart view to JSON in a public Blob Storage container, which the
    website reads. The site falls back to its own copy if Blob Storage can't be reached.
 
 Why these choices: Azure SQL's serverless free offer pauses itself when idle and gives 100,000
 vCore-seconds a month. It stays awake for an hour after each run, so one run a day uses about
-half of that, and if the allowance ever ran out it would pause until the next month rather than
-charge. Keeping raw JSON in staging means a change to the model is a reload, not a re-download
-of seventeen years of data.
+half of that, and if the allowance ever ran out it would pause until the next month and never
+charge. Keeping raw JSON in staging means a change to the model only needs a reload from staging,
+without downloading seventeen years of data again.
 
 ## Where to look
 
