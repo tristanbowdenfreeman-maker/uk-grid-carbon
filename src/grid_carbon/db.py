@@ -1,6 +1,7 @@
 """Azure SQL connections and the runner for the scripts in sql/."""
 
 import re
+import time
 from pathlib import Path
 
 import pymssql
@@ -12,20 +13,34 @@ SQL_DIR = PROJECT_ROOT / "sql"
 _GO_LINE = re.compile(r"^\s*GO\s*;?\s*$", re.IGNORECASE | re.MULTILINE)
 
 
-def connect(settings: Settings, autocommit: bool = True) -> pymssql.Connection:
-    # Azure SQL only accepts encrypted connections, which needs TDS 7.4. A serverless database
-    # that has paused takes up to a minute to wake, hence the long login timeout.
-    return pymssql.connect(
-        server=settings.mssql_host,
-        port=settings.mssql_port,
-        user=settings.mssql_user,
-        password=settings.mssql_password,
-        database=settings.mssql_database,
-        autocommit=autocommit,
-        tds_version="7.4",
-        login_timeout=90,
-        timeout=1800,
-    )
+def connect(settings: Settings, autocommit: bool = True, wake_wait: int = 300) -> pymssql.Connection:
+    # Azure SQL only accepts encrypted connections, which needs TDS 7.4. A paused serverless
+    # database turns logins away straight away with error 40613 while it wakes (a minute or two),
+    # so keep trying for up to `wake_wait` seconds.
+    deadline = time.monotonic() + wake_wait
+    while True:
+        try:
+            return pymssql.connect(
+                server=settings.mssql_host,
+                port=settings.mssql_port,
+                user=settings.mssql_user,
+                password=settings.mssql_password,
+                database=settings.mssql_database,
+                autocommit=autocommit,
+                tds_version="7.4",
+                login_timeout=90,
+                timeout=1800,
+            )
+        except pymssql.OperationalError as error:
+            if not _is_waking(error) or time.monotonic() > deadline:
+                raise
+            time.sleep(15)
+
+
+def _is_waking(error: pymssql.OperationalError) -> bool:
+    """True for error 40613, which a paused database returns while it wakes up."""
+    detail = error.args[0] if error.args else None
+    return isinstance(detail, tuple) and detail[0] == 40613
 
 
 def engine(settings: Settings) -> Engine:
