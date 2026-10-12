@@ -138,6 +138,9 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 .hero h1 .big { color: var(--accent); }
 .hero h1 .soft { display: block; color: var(--muted); font-size: 0.55em; line-height: 1.05; margin-top: 0.35rem; }
 .hero p { color: var(--muted); font-size: clamp(1rem, 1.4vw, 1.15rem); max-width: 40rem; margin: 1rem 0 0; }
+.hero .priority { color: var(--text); font-weight: 600; }
+.hero .priority b { color: var(--accent-deep); }
+.hero .priority a { margin-left: 0.3rem; color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
 .hero .region-note { color: var(--text); border-left: 3px solid var(--accent); padding-left: 0.8rem; }
 
 .progress { position: relative; margin: 1.75rem 0 0; max-width: 40rem; padding-top: 1.4rem; }
@@ -255,6 +258,14 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 .build-detail p { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.95rem; }
 
 .verdict { background: linear-gradient(135deg, rgba(82, 117, 37, 0.1), rgba(192, 87, 47, 0.08)), var(--surface); }
+.advice { list-style: none; counter-reset: advice; margin: 1.5rem 0 0; padding: 0; max-width: 46rem; }
+.advice li { counter-increment: advice; display: grid; grid-template-columns: 2.2rem 1fr; column-gap: 0.4rem; padding: 1.1rem 0; border-top: 1px solid var(--border); }
+.advice li::before { content: counter(advice); grid-row: span 2; font: 400 1.6rem/1 var(--display); color: var(--accent); }
+.advice p { margin: 0; color: var(--muted); }
+.advice p:first-of-type { color: var(--text); font-size: 1.08rem; margin-bottom: 0.3rem; }
+.advice__who { margin-left: 0.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); }
+.advice a { font-weight: 700; color: var(--accent-deep); white-space: nowrap; }
+.advice a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .verdict .bad { color: var(--rust); }
 .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2rem; }
 .fact { padding: 1rem; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--c); }

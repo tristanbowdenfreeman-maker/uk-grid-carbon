@@ -12,7 +12,6 @@ const LIVE_API = "https://api.carbonintensity.org.uk";
 
 const TARGET = 95;            // Clean Power 2030: at least 95% of GB generation from clean sources
 const OFFICIAL_2025 = 73.3;   // DESNZ's own 2025 figure, which counts a slightly different set of fuels
-const GAS_ALLOWED = 5;        // the gas share Clean Power 2030 leaves room for, at most
 
 const REGIONS = {
   18: "Great Britain", 15: "England", 16: "Scotland", 17: "Wales",
@@ -279,8 +278,8 @@ const regionL12m = (summary, id) => summary.find((r) => r.period === "L12M" && r
 // ---------- Page 1: Are we on track? ----------
 
 async function renderTrack(ticket) {
-  const [annual, onTrack, capacity, regions, map] = await Promise.all([
-    load("gb_annual"), load("on_track"), load("capacity"), load("region_summary"), loadMap(),
+  const [annual, onTrack, capacity, regions, map, wind] = await Promise.all([
+    load("gb_annual"), load("on_track"), load("capacity"), load("region_summary"), loadMap(), load("region_wind"),
   ]);
   if (ticket !== navigation) return;
   const t = onTrack[0];
@@ -289,8 +288,9 @@ async function renderTrack(ticket) {
   const fullYears = years.filter((r) => r.year < lastPeriod.getUTCFullYear());
   const picked = state.region !== 18 ? regionL12m(regions, state.region) : null;
   const build = buildOut(capacity);
-  const gap = build.find((b) => b.tech === "Offshore wind") ?? build.at(-1);
+  const gap = build.reduce((a, b) => (b.target - b.outlook > a.target - a.outlook ? b : a));
   const l12m = regions.filter((r) => r.period === "L12M");
+  const advice = priorities(build, gap, wind.filter((w) => w.region_id === 18), l12m);
   const local = l12m.filter((r) => !r.is_aggregate && r.clean_pct != null).sort((a, b) => b.clean_pct - a.clean_pct);
 
   view.innerHTML = `<div class="page">
@@ -304,6 +304,7 @@ async function renderTrack(ticket) {
           <span class="progress__mark" style="--x:${TARGET}%"><span>2030 target</span></span>
           <div class="progress__scale"><span>0%</span><span>100%</span></div>
         </div>
+        <p class="priority"><b>What I'd prioritise:</b> ${esc(advice.short)} <a href="#/track/priorities">Why &darr;</a></p>
         ${picked ? `<p class="region-note">${esc(regionName(state.region))} ran on ${pct(picked.clean_pct)} clean power over the same 12 months.</p>` : ""}
       </div>
       <aside class="live" aria-live="polite"><div class="live__label"><span class="live__dot"></span>Right now</div><p class="faint">Loading…</p></aside>
@@ -368,16 +369,14 @@ async function renderTrack(ticket) {
       </ul>
     </section>
 
-    <section class="card reveal verdict" id="verdict">
+    <section class="card reveal verdict" id="priorities">
       <div class="card-head"><div>
-        <h2>2030 outlook</h2>
+        <h2>What I'd prioritise</h2>
         <p class="lede">Building is mostly on track. <span class="bad">${esc(gap.tech)} and gas aren't.</span></p>
       </div></div>
-      <div class="facts">
-        ${build.filter((b) => b.ratio >= 1).slice(0, 1).map((b) => `<div class="fact" style="--c:var(--green)"><strong>${pct(b.ratio * 100)}</strong><span>of the ${b.tech.toLowerCase()} 2030 needs are on course to be built. Ahead of plan.</span></div>`).join("")}
-        <div class="fact" style="--c:var(--rust)"><strong>${num(gap.outlook)} of ${num(gap.target)} GW</strong><span>${esc(gap.tech.toLowerCase())} on course for 2030. It's the biggest gap.</span></div>
-        <div class="fact" style="--c:var(--gas)"><strong>${pct(t.gas_l12m)} gas</strong><span>in the last 12 months. Clean Power 2030 leaves room for about ${GAS_ALLOWED}%.</span></div>
-      </div>
+      <ol class="advice">${advice.points.map(([title, who, text, href, link]) => `<li>
+          <p><b>${title}</b> <span class="advice__who">${who}</span></p>
+          <p>${text} <a href="${href}">${link} &rarr;</a></p></li>`).join("")}</ol>
     </section>
   </div>`;
 
@@ -600,6 +599,49 @@ function buildHeadline(build) {
   return good.length ? `${capital(good.join(", and "))}. ${behind}` : behind;
 }
 
+// What I'd prioritise: up to four points worded from the live numbers. Each one drops out if the
+// data stops backing it (the calm-day points need calm days to still burn gas and cost more).
+function priorities(build, gap, bands, l12m) {
+  const name = gap.tech.toLowerCase();
+  const short = gap.target - gap.outlook;
+  const others = build.filter((b) => b !== gap && b.outlook < b.target).reduce((sum, b) => sum + b.target - b.outlook, 0);
+  const first = gap.actuals[0];
+  const pastPace = (gap.built - first.gw) / (gap.builtYear - first.year);
+  const neededPace = (gap.target - gap.built) / (2030 - gap.builtYear);
+  const calm = bands.find((b) => b.band === "Calm");
+  const windy = bands.find((b) => b.band === "Windy");
+  const dearer = calm && windy ? Math.round(calm.price - windy.price) : 0;
+  const local = l12m.filter((r) => !r.is_aggregate && r.clean_pct != null).sort((a, b) => a.clean_pct - b.clean_pct);
+  const scotland = local.filter((r) => r.region_name.includes("Scotland")).at(-1);
+  const calmGas = calm && calm.gas_pct >= 10;
+  const points = [[
+    `Speed up ${name}`, "Government",
+    `It's ${num(short, 1)} GW short of what 2030 needs${short > others ? ", more than everything else put together" : ""}.
+      It has grown about ${num(pastPace)} GW a year since ${first.year} and now needs ${num(neededPace, 1)} GW a year, so I'd
+      get projects that are already planned through the auctions and onto the grid.`,
+    "#/track/build", "See the build-out",
+  ]];
+  if (scotland && local[0]) points.push([
+    "Connect Scottish wind to the South", "Government",
+    `${esc(scotland.region_name)}'s power is ${pct(scotland.clean_pct)} clean and ${esc(local[0].region_name)}'s is ${pct(local[0].clean_pct)}.
+      More cables would move clean power to where people use it.`,
+    "#/where/map", "See the map",
+  ]);
+  if (calmGas) points.push([
+    "Plan for long calm spells", "Government",
+    `Batteries are ahead of plan, but they only last a few hours. On calm days gas still made ${pct(calm.gas_pct)} of
+      power, so I'd look at storage that lasts days.`,
+    "#/where/wind", "See calm vs windy days",
+  ]);
+  if (dearer >= 1) points.push([
+    "Price for calm days", "Suppliers",
+    `Calm days cost about ${dearer}p per kWh more. Tariffs that pay customers to move flexible use, like EV charging,
+      into windy hours mean lower bills and less gas.`,
+    "#/where/day", "See prices by hour",
+  ]);
+  return { short: `${name} first${calmGas ? ", then calm days" : ""}.`, points };
+}
+
 function buildRow(b) {
   const top = Math.max(b.target, b.outlook, b.built) * 1.08;
   const at = (gw) => `${(gw / top) * 100}%`;
@@ -621,10 +663,9 @@ function buildRow(b) {
     <div class="build-detail" data-tech="${esc(b.tech)}" hidden></div>`;
 }
 
-// Plans as a share of what's needed, in words.
+// How far plans are from what 2030 needs, in GW.
 function buildNote(b) {
-  const share = pct(b.ratio * 100);
-  return b.ratio >= 1 ? `Plans reach ${share} of what 2030 needs.` : `Plans reach ${share} of what 2030 needs, ${num(b.target - b.outlook)} GW short.`;
+  return b.ratio >= 1 ? `Plans cover 2030 with ${num(b.outlook - b.target, 1)} GW to spare.` : `${num(b.target - b.outlook, 1)} GW short of 2030 on current plans.`;
 }
 
 function wireBuild(capacity) {
@@ -678,7 +719,6 @@ async function renderWhere(ticket) {
   const local = l12m.filter((r) => !r.is_aggregate && r.clean_pct != null).sort((a, b) => b.clean_pct - a.clean_pct);
   const best = local[0];
   const worst = local.at(-1);
-  const scotland = l12m.find((r) => r.region_id === 16);
   const id = state.region;
 
   view.innerHTML = `<div class="page">
@@ -731,20 +771,6 @@ async function renderWhere(ticket) {
       </ul>
     </section>
 
-    <section class="card reveal" id="so-what">
-      <h2 class="actions-title">Recommendations</h2>
-      <div class="actions">
-        <article class="action"><span class="num">1</span><h3>Build offshore faster</h3>
-          <p>It's the biggest gap to 2030. Today's plans fall well short of what the target needs.</p>
-          <a href="#/track/build">See the build-out &rarr;</a></article>
-        <article class="action"><span class="num">2</span><h3>Shift demand away from 4–7pm</h3>
-          <p>The evening peak is when gas fills the gap and prices jump. EVs, heat pumps and batteries can wait a couple of hours.</p>
-          <a href="#/where/day">See the average day &rarr;</a></article>
-        <article class="action"><span class="num">3</span><h3>Connect Scottish wind to the South</h3>
-          <p>Scotland's power is ${pct(scotland?.clean_pct)} clean, ${esc(worst.region_name)}'s ${pct(worst.clean_pct)}. More cables move clean power to where people use it.</p>
-          <a href="#/where/map">See the map &rarr;</a></article>
-      </div>
-    </section>
   </div>`;
 
   view.querySelectorAll(".map path, .rank button").forEach((el) => el.addEventListener("click", () => pickRegion(Number(el.dataset.region))));
