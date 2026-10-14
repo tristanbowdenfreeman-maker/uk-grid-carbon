@@ -133,7 +133,7 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 /* ---------- Hero ---------- */
 
 .band { margin-bottom: clamp(2rem, 5vw, 3.5rem); }
-.hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: clamp(1.5rem, 4vw, 3rem); align-items: start; padding: clamp(1.5rem, 5vw, 3.5rem) 0 2rem; }
+.hero { position: relative; display: grid; align-items: start; padding: clamp(1.5rem, 5vw, 3.5rem) 0 2rem; }
 .hero h1 { font-size: clamp(2.3rem, 6.4vw, 5.4rem); line-height: 0.95; }
 .hero h1 .big { color: var(--accent); }
 .hero h1 .soft { display: block; color: var(--muted); font-size: 0.55em; line-height: 1.05; margin-top: 0.35rem; }
@@ -145,21 +145,14 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 
 .progress { position: relative; margin: 1.75rem 0 0; max-width: 40rem; padding-top: 1.4rem; }
 .progress__track { position: relative; height: 1.1rem; border-radius: 999px; background: var(--lime); overflow: hidden; }
-.progress__fill { position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 999px; background: linear-gradient(90deg, var(--biomass), var(--accent)); transform-origin: left; animation: grow 1.6s var(--ease) both 0.2s; }
+.progress__fill { position: absolute; inset: 0 auto 0 0; width: var(--w); border-radius: 999px; background: var(--accent); transform-origin: left; animation: grow 1.6s var(--ease) both 0.2s; }
 @keyframes grow { from { transform: scaleX(0); } }
 .progress__mark { position: absolute; top: 1.4rem; bottom: -0.3rem; left: var(--x); width: 2px; background: var(--text); }
 .progress__mark span { position: absolute; top: -1.4rem; right: -1px; white-space: nowrap; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .progress__scale { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--faint); margin-top: 0.35rem; }
 
-.live { padding: 1.1rem 1.25rem; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--border); min-height: 9rem; }
-.live__label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
-.live__dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(82, 117, 37, 0.5); animation: pulse 2s infinite; }
-@keyframes pulse { 70% { box-shadow: 0 0 0 0.5rem rgba(82, 117, 37, 0); } 100% { box-shadow: 0 0 0 0 rgba(82, 117, 37, 0); } }
-.live__value { font: 400 3rem/1 var(--display); margin: 0.5rem 0 0.2rem; }
-.live__value small { font: 600 1rem var(--body); color: var(--muted); margin-left: 0.3rem; }
-.live__where { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.8rem; }
-.stack { display: flex; height: 0.7rem; border-radius: 999px; overflow: hidden; background: var(--track); }
-.stack span { height: 100%; background: var(--c); }
+.hero .live { color: var(--text); }
+.hero .live b { color: var(--accent-deep); }
 
 /* ---------- Charts ---------- */
 
@@ -257,13 +250,12 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 .build-detail { padding: 0.5rem 0.75rem 1.5rem 10.25rem; }
 .build-detail p { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.95rem; }
 
-.verdict { background: linear-gradient(135deg, rgba(82, 117, 37, 0.1), rgba(192, 87, 47, 0.08)), var(--surface); }
 .advice { list-style: none; counter-reset: advice; margin: 1.5rem 0 0; padding: 0; max-width: 46rem; }
 .advice li { counter-increment: advice; display: grid; grid-template-columns: 2.2rem 1fr; column-gap: 0.4rem; padding: 1.1rem 0; border-top: 1px solid var(--border); }
 .advice li::before { content: counter(advice); grid-row: span 2; font: 400 1.6rem/1 var(--display); color: var(--accent); }
 .advice p { margin: 0; color: var(--muted); }
 .advice p:first-of-type { color: var(--text); font-size: 1.08rem; margin-bottom: 0.3rem; }
-.advice__who { margin-left: 0.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); }
+.advice__who { margin-left: 0.4rem; font-size: 0.9rem; font-weight: 400; color: var(--faint); }
 .advice a { font-weight: 700; color: var(--accent-deep); white-space: nowrap; }
 .advice a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .verdict .bad { color: var(--rust); }
@@ -297,17 +289,12 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 .scale { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: var(--faint); margin-top: 0.75rem; }
 .scale i { flex: 0 0 8rem; height: 0.5rem; border-radius: 999px; background: linear-gradient(90deg, var(--rust), var(--amber), var(--green)); }
 
-/* ---------- Wind tiles ---------- */
+/* ---------- Wind table ---------- */
 
-.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-.tile { padding: 1.4rem; border-radius: var(--radius); background: var(--raised); border: 1px solid var(--border); border-top: 4px solid var(--c); }
-.tile h3 { margin: 0; font: 400 1.6rem/1 var(--display); text-transform: uppercase; }
-.tile .when { margin: 0.3rem 0 1.25rem; color: var(--faint); font-size: 0.85rem; }
-.tile .figure { font: 400 clamp(2.4rem, 4.4vw, 3.4rem)/1 var(--display); }
-.tile .figure small { font: 600 0.95rem var(--body); color: var(--muted); margin-left: 0.3rem; }
-.tile .row { display: flex; justify-content: space-between; padding: 0.55rem 0; border-top: 1px solid var(--border); font-size: 0.95rem; color: var(--muted); }
-.tile .row:first-of-type { margin-top: 1rem; }
-.tile .row b { color: var(--text); font-variant-numeric: tabular-nums; }
+.wind-table .faint { display: block; font-size: 0.85rem; padding-left: 1.35rem; }
+.wind-table .swatch { display: inline-block; width: 0.8rem; height: 0.8rem; margin-right: 0.55rem; border-radius: 3px; background: var(--c); vertical-align: -0.05rem; }
+.wind-table td.num { color: var(--text); font-variant-numeric: tabular-nums; }
+.table-note { margin: 0.9rem 0 0; font-size: 0.85rem; color: var(--faint); }
 
 /* ---------- Tabs (Summer/Winter) ---------- */
 
@@ -422,7 +409,6 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
 
 @media (max-width: 1000px) {
   .hero { grid-template-columns: 1fr; }
-  .live { max-width: 24rem; }
   .map-layout, .map-layout--small { grid-template-columns: 1fr; }
   .map svg { max-height: 26rem; }
   .facts, .actions, .code-grid { grid-template-columns: 1fr; }
@@ -440,7 +426,6 @@ h2 { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.05; max-width: 48re
   .region-filter { grid-area: filter; }
   .site-nav__links .long, .site-nav__back-label { display: none; }
   .site-nav__links .short { display: inline; }
-  .tiles { grid-template-columns: 1fr; }
   .defs { grid-template-columns: 1fr; gap: 0.25rem; }
   .defs dd { margin-bottom: 0.75rem; }
   .schema { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.75rem; }

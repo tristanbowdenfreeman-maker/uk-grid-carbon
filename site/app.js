@@ -1,7 +1,7 @@
 // Clean Power 2030: is Britain on track for 95% clean electricity by 2030? Two cross-filtered
 // pages read the JSON exported from the Azure SQL mart views: "Are we on track?" (#/) and
 // "Where and when?" (#/where). The region picker in the nav filters both, and clicking the map
-// sets it. The "right now" tile calls the Carbon Intensity API from the browser.
+// sets it. The "right now" line calls the Carbon Intensity API from the browser.
 
 // The Azure Function publishes fresh data to Blob Storage every morning; site/data is the copy
 // published with the site, used if Blob Storage can't be reached. Anywhere but the live site
@@ -30,14 +30,10 @@ const MIX = [
   ["coal", "Coal", "var(--coal)"],
   ["other", "Other", "var(--other)"],
 ];
-const LIVE_FUELS = {
-  wind: "var(--wind)", solar: "var(--solar)", hydro: "var(--hydro)", biomass: "var(--biomass)", nuclear: "var(--nuclear)",
-  gas: "var(--gas)", coal: "var(--coal)", imports: "var(--other)", other: "var(--other)",
-};
 const TECHS = ["Offshore wind", "Onshore wind", "Solar", "Batteries"];
 const STATUS = [[1, "var(--green)", "on pace"], [0.8, "var(--amber)", "a little behind"], [0, "var(--rust)", "well behind"]];
 const WIND_BANDS = {
-  Calm: ["Under 4 m/s, 100 m up", "var(--gas)"],
+  Calm: ["Under 4 m/s", "var(--gas)"],
   Breezy: ["4 to 10 m/s", "var(--biomass)"],
   Windy: ["10 m/s and over", "var(--wind)"],
 };
@@ -304,10 +300,10 @@ async function renderTrack(ticket) {
           <span class="progress__mark" style="--x:${TARGET}%"><span>2030 target</span></span>
           <div class="progress__scale"><span>0%</span><span>100%</span></div>
         </div>
-        <p class="priority"><b>What I'd prioritise:</b> ${esc(advice.short)} <a href="#/track/priorities">Why &darr;</a></p>
+        <p class="priority"><b>What I'd prioritise:</b> ${esc(advice.short)} <a href="#/track/priorities">Why</a></p>
+        <p class="live" aria-live="polite">Right now: loading…</p>
         ${picked ? `<p class="region-note">${esc(regionName(state.region))} ran on ${pct(picked.clean_pct)} clean power over the same 12 months.</p>` : ""}
       </div>
-      <aside class="live" aria-live="polite"><div class="live__label"><span class="live__dot"></span>Right now</div><p class="faint">Loading…</p></aside>
     </section>
     </div>
 
@@ -345,7 +341,7 @@ async function renderTrack(ticket) {
               <span>${esc(r.region_name)}</span><span class="bar" style="--w:${r.clean_pct}%;--c:${cleanColour(r.clean_pct)}"></span><span class="val">${pct(r.clean_pct)}</span>
             </button></li>`).join("")}</ol>
           <div class="scale"><span>Less clean</span><i></i><span>More clean</span></div>
-          <a class="more" href="#/where">All regions and times of day &rarr;</a>
+          <a class="more" href="#/where">All regions and times of day</a>
         </div>
       </div>
     </section>
@@ -375,8 +371,8 @@ async function renderTrack(ticket) {
         <p class="lede">Building is mostly on track. <span class="bad">${esc(gap.tech)} and gas aren't.</span></p>
       </div></div>
       <ol class="advice">${advice.points.map(([title, who, text, href, link]) => `<li>
-          <p><b>${title}</b> <span class="advice__who">${who}</span></p>
-          <p>${text} <a href="${href}">${link} &rarr;</a></p></li>`).join("")}</ol>
+          <p><b>${title}</b> <span class="advice__who">For ${who.toLowerCase()}</span></p>
+          <p>${text} <a href="${href}">${link}</a></p></li>`).join("")}</ol>
     </section>
   </div>`;
 
@@ -390,7 +386,7 @@ async function renderTrack(ticket) {
   renderLive(ticket);
 }
 
-// The live tile: the clean share of what's being generated in the selected region this half-hour.
+// The live line: the clean share of what's being generated in the selected region this half-hour.
 async function renderLive(ticket) {
   const box = view.querySelector(".live");
   const id = state.region;
@@ -402,17 +398,10 @@ async function renderLive(ticket) {
     const share = (fuel) => mix.find((f) => f.fuel === fuel)?.perc ?? 0;
     const clean = CLEAN.reduce((sum, fuel) => sum + share(fuel), 0);
     const value = (100 * clean) / Math.max(100 - share("imports"), 1);
-    const shown = mix.filter((f) => f.perc > 0 && f.fuel !== "imports").sort((a, b) => b.perc - a.perc);
-    const total = shown.reduce((sum, f) => sum + f.perc, 0);
-    box.innerHTML = `<div class="live__label"><span class="live__dot"></span>Right now</div>
-      <div class="live__value">${pct(value)}<small>clean</small></div>
-      <p class="live__where">${esc(regionName(id))}, ${ukClock.format(new Date(period.from))}</p>
-      <div class="stack" data-tip="${esc(["Generating this half-hour", ...shown.map((f) => `${capital(f.fuel)}: ${pct((100 * f.perc) / total, 1)}`)].join("\n"))}">
-        ${shown.map((f) => `<span style="width:${(100 * f.perc) / total}%;--c:${LIVE_FUELS[f.fuel] ?? "var(--other)"}"></span>`).join("")}
-      </div>`;
+    box.innerHTML = `<b>Right now</b> (${ukClock.format(new Date(period.from))}): ${esc(regionName(id))} is running on ${pct(value)} clean power.`;
   } catch (error) {
-    console.warn("Live tile:", error);
-    if (ticket === navigation) box.innerHTML = `<div class="live__label">Right now</div><p class="faint">The live figure didn't load. National Grid's API is sometimes busy, so try again in a minute.</p>`;
+    console.warn("Live line:", error);
+    if (ticket === navigation) box.innerHTML = `<b>Right now:</b> the live figure didn't load. National Grid's API is sometimes busy, so try again in a minute.`;
   }
 }
 
@@ -752,7 +741,11 @@ async function renderWhere(ticket) {
         <h2>Gas share and price by wind speed</h2>
         <p class="lede">${esc(windHeadline(wind.filter((w) => w.region_id === id)))}</p>
       </div></div>
-      <div class="tiles">${wind.filter((w) => w.region_id === id).map(windTile).join("")}</div>
+      <div class="table-wrap"><table class="checks wind-table">
+        <thead><tr><th>Wind</th><th class="num">Share of time</th><th class="num">Gas</th><th class="num">Clean</th><th class="num">Price</th></tr></thead>
+        <tbody>${wind.filter((w) => w.region_id === id).map(windRow).join("")}</tbody>
+      </table></div>
+      <p class="table-note">Wind speed is measured 100 m up, about the height of a turbine hub. Prices are average Octopus Agile rates per kWh.</p>
     </section>
 
     <section class="card reveal" id="day">
@@ -808,15 +801,15 @@ function windHeadline(bands) {
     + (dearer >= 1 ? `, and power cost about ${dearer}p per kWh more when it was calm.` : "."));
 }
 
-function windTile(w) {
+function windRow(w) {
   const [when, colour] = WIND_BANDS[w.band];
-  return `<article class="tile" style="--c:${colour}" data-tip="${esc([`${w.band} half-hours`, `${num(w.half_hours / 2)} hours in the last 12 months`, `Clean: ${pct(w.clean_pct)}`, `Gas: ${pct(w.gas_pct)}`, `Average Agile price: ${pence(w.price)} per kWh`].join("\n"))}">
-      <h3>${esc(w.band)}</h3>
-      <p class="when">${esc(when)} · ${pct(w.share_of_time * 100)} of the time</p>
-      <div class="figure">${pct(w.gas_pct)}<small>gas</small></div>
-      <div class="row"><span>Price</span><b>${pence(w.price)} per kWh</b></div>
-      <div class="row"><span>Clean</span><b>${pct(w.clean_pct)}</b></div>
-    </article>`;
+  return `<tr data-tip="${esc([`${w.band} half-hours`, `${num(w.half_hours / 2)} hours in the last 12 months`].join("\n"))}">
+      <td><i class="swatch" style="--c:${colour}"></i>${esc(w.band)} <span class="faint">${esc(when)}</span></td>
+      <td class="num">${pct(w.share_of_time * 100)}</td>
+      <td class="num">${pct(w.gas_pct)}</td>
+      <td class="num">${pct(w.clean_pct)}</td>
+      <td class="num">${pence(w.price)}</td>
+    </tr>`;
 }
 
 function drawDay(rows) {
