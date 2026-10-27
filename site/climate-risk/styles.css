@@ -117,7 +117,7 @@ th button { all: unset; cursor: pointer; }
 th button:hover, th[aria-sort] button { color: var(--text); }
 td { font-variant-numeric: tabular-nums; }
 td.wrap { white-space: normal; min-width: 14rem; }
-tr.is-test td:first-child::after { content: "test"; margin-left: 0.5rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: #e6efec; color: var(--accent); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+td[data-role]::after { content: attr(data-role); margin-left: 0.5rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: #e6efec; color: var(--accent); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .ratio.good { color: var(--green); font-weight: 700; }
 .ratio.off { color: var(--amber); font-weight: 700; }
 .ratio.bad { color: var(--rust); font-weight: 700; }
@@ -127,6 +127,9 @@ tr.is-test td:first-child::after { content: "test"; margin-left: 0.5rem; padding
 .method li { break-inside: avoid; margin: 0 0 1rem; color: var(--muted); }
 .method strong { color: var(--text); }
 .checks { margin-top: 1.25rem; }
+td.role-calibration::after, td.role-overlap::after { background: #efe9da; color: var(--muted); }
+tr.base td { font-weight: 700; }
+.hero .caveat { font-size: 0.95rem; color: var(--muted); border-left: 3px solid var(--amber); padding-left: 0.75rem; }
 
 .tip {
   position: fixed; z-index: 50; left: 0; top: 0; pointer-events: none; opacity: 0; max-width: 18rem;

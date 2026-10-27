@@ -1,0 +1,62 @@
+{
+ "variants": [
+  {
+   "name": "Base model",
+   "group": "",
+   "eal": 739387908,
+   "rp200": 3287363878
+  },
+  {
+   "name": "Windstorm calibrated on 2020 only",
+   "group": "Calibration",
+   "eal": 606461036,
+   "rp200": 1733949004
+  },
+  {
+   "name": "Windstorm calibrated on 2022 only",
+   "group": "Calibration",
+   "eal": 1179639915,
+   "rp200": 8555939766
+  },
+  {
+   "name": "Damage grows with the square of excess gust",
+   "group": "Damage curve",
+   "eal": 779091784,
+   "rp200": 1676026380
+  },
+  {
+   "name": "Damage grows with the fourth power",
+   "group": "Damage curve",
+   "eal": 716247337,
+   "rp200": 6626715702
+  },
+  {
+   "name": "Pareto tail on the largest 5% of days",
+   "group": "Tail",
+   "eal": 739387908,
+   "rp200": 2069394148
+  },
+  {
+   "name": "Pareto tail on the largest 20% of days",
+   "group": "Tail",
+   "eal": 739387908,
+   "rp200": 3702150072
+  },
+  {
+   "name": "No fitted tail: history resampled only",
+   "group": "Tail",
+   "eal": 739387908,
+   "rp200": 1557621544
+  }
+ ],
+ "seed_rp200": [
+  3084502799,
+  3287363878
+ ],
+ "history_rp200": [
+  2025224766,
+  3152248889,
+  5854630347
+ ],
+ "history_runs": 30
+}

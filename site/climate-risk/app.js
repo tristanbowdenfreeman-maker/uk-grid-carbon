@@ -171,12 +171,26 @@ function frequencyTable(regions) {
 
 function checksTable(checks) {
   const verdict = (ratio) => (ratio >= 0.75 && ratio <= 1.33 ? "good" : ratio >= 0.5 && ratio <= 2 ? "off" : "bad");
+  const roles = { calibration: "calibration", overlap: "partly test", test: "test" };
   return `<table>
       <thead><tr><th>Event</th><th>ABI reported</th><th>Model: wind</th><th>Model: flood</th><th>Model ÷ ABI</th></tr></thead>
-      <tbody>${checks.map((c) => `<tr class="${c.fits ? "" : "is-test"}">
-          <td>${esc(c.name)}<br><span class="faint">${day(c.start)} to ${day(c.end)} · ${esc(c.abi_note)}</span></td>
+      <tbody>${checks.map((c) => `<tr>
+          <td class="role-${c.role}" data-role="${roles[c.role]}">${esc(c.name)}<br><span class="faint">${day(c.start)} to ${day(c.end)} · ${esc(c.abi_note)}</span></td>
           <td>${money(c.abi)}</td><td>${money(c.model_storm)}</td><td>${money(c.model_flood)}</td>
           <td class="ratio ${verdict(c.ratio)}">${num(c.ratio, 2)}×</td></tr>`).join("")}</tbody>
+    </table>`;
+}
+
+// ---------- Sensitivity ----------
+
+function sensitivityTable(sens) {
+  const base = sens.variants[0];
+  return `<table>
+      <thead><tr><th>Change</th><th>Average year</th><th>1-in-200</th><th>1-in-200 against base</th></tr></thead>
+      <tbody>${sens.variants.map((v, i) => `<tr${i ? "" : ' class="base"'}>
+          <td>${esc(v.name)}${v.group ? `<br><span class="faint">${esc(v.group)}</span>` : ""}</td>
+          <td>${money(v.eal)}</td><td>${money(v.rp200)}</td>
+          <td>${i ? pct(100 * (v.rp200 / base.rp200 - 1)) : "–"}</td></tr>`).join("")}</tbody>
     </table>`;
 }
 
@@ -209,21 +223,26 @@ function drawPrices(el, prices) {
 // ---------- Page ----------
 
 async function render() {
-  const [gb, regions, checks, prices, meta, map] = await Promise.all([
-    load("gb"), load("regions"), load("checks"), load("prices"), load("meta"), fetch("map.json").then((r) => r.json()),
+  const [gb, regions, checks, sens, prices, meta, map] = await Promise.all([
+    load("gb"), load("regions"), load("checks"), load("sensitivity"), load("prices"), load("meta"),
+    fetch("map.json").then((r) => r.json()),
   ]);
   const byCost = [...regions].sort((a, b) => b.risk_cost_per_property - a.risk_cost_per_property);
-  const tests = checks.filter((c) => !c.fits);
+  const tests = checks.filter((c) => c.role === "test");
+  const rp200s = sens.variants.map((v) => v.rp200);
+  const [low, high] = [Math.min(...rp200s), Math.max(...rp200s)];
   const worst = gb.worst_storm_days[0];
   const worstYear = gb.history.reduce((a, b) => (a.storm + (a.flood ?? 0) > b.storm + (b.flood ?? 0) ? a : b));
 
   view.innerHTML = `<div class="page">
     <section class="hero">
-      <h1>A <span class="big">${money(gb.rp200)}</span> year<span class="soft">is the 1-in-200 for UK windstorm and flood</span></h1>
+      <h1>A <span class="big">${money(gb.rp200)}</span> year<span class="soft">is this model's 1-in-200 for UK windstorm and flood</span></h1>
       <p>I ran 47 years of storms (${meta.storm_years[0]}–${meta.storm_years[1]}) and 20 years of flood warnings
         (${meta.flood_years[0]}–${meta.flood_years[1]}) against a hypothetical portfolio of all
         ${num(gb.properties / 1e6, 1)} million properties in Great Britain, then simulated ${num(meta.simulated_years)} years.
-        It's calibrated on ABI claims and validated on events it wasn't fitted to.</p>
+        It's calibrated on ABI claims and checked against past events.</p>
+      <p class="caveat">An illustrative model, built to learn the method, so treat the figures as rough. Other reasonable
+        modelling choices put the 1-in-200 anywhere from ${money(low)} to ${money(high)}: see the sensitivity check.</p>
       <ul class="figures">
         <li><strong>${money(gb.eal)}</strong><span>Average year (EAL)</span></li>
         <li><strong>${money(gb.rp10)}</strong><span>1-in-10 year</span></li>
@@ -262,6 +281,25 @@ async function render() {
 
     <section class="card">
       <div class="card-head">
+        <h2>Sensitivity: how far the 1-in-200 moves</h2>
+        <p class="lede">Changing one choice at a time, and recalibrating each run, moves the 1-in-200 from ${money(low)} to
+          ${money(high)}. Simulation noise is small next to that: ten random seeds give ${money(sens.seed_rp200[0])} to
+          ${money(sens.seed_rp200[1])}.</p>
+      </div>
+      <div class="table-wrap">${sensitivityTable(sens)}</div>
+      <ul class="method checks">
+        <li><strong>Calibration matters most.</strong> With one gust point per region, February 2020 and 2022 imply very
+          different windstorm scales, and the tail follows whichever one you trust.</li>
+        <li><strong>The tail is the uncertain part.</strong> Each run is recalibrated to the ABI figures, so the average year
+          moves far less than the 1-in-200.</li>
+        <li><strong>47 years is a short record.</strong> Redrawing the historical years with replacement
+          (${sens.history_runs} times) gives a 1-in-200 of ${money(sens.history_rp200[0])} to
+          ${money(sens.history_rp200[2])} (10th to 90th percentile).</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
         <h2>As-if losses: each year since ${meta.storm_years[0]} replayed on today's properties</h2>
         <p class="lede">The worst was ${worstYear.year} at ${money(worstYear.storm + (worstYear.flood ?? 0))}. The costliest single day was
           ${day(worst.day)} (${money(worst.loss)})${worst.day === "1990-01-25" ? ", the Burns' Day storm" : ""}.</p>
@@ -281,9 +319,9 @@ async function render() {
 
     <section class="card">
       <div class="card-head">
-        <h2>Validation: the model against what insurers actually paid</h2>
-        <p class="lede">${tests.length} of ${checks.length} events are out-of-sample tests. Close on the 2023 storms, far too low on
-          deep river and surface-water floods.</p>
+        <h2>Back-test: the model against what insurers actually paid</h2>
+        <p class="lede">Only ${tests.length} of ${checks.length} events are clean tests, and the model is far too low on both.
+          February 2020 and 2022 set the windstorm scale, and the 2023 storms fall in the year flood is calibrated on.</p>
       </div>
       <div class="table-wrap">${checksTable(checks)}</div>
       <ul class="method checks">
@@ -296,20 +334,6 @@ async function render() {
         <li><strong>2015 and 2007 far too low.</strong> A warning says where water is expected, not how deep. 2007 was mostly surface
           water, which warnings don't cover.</li>
       </ul>
-    </section>
-
-    <section class="card">
-      <div class="card-head">
-        <h2>Power price against that month's average, by how windy the day was</h2>
-        <p class="lede">The calmest tenth of days cost ${num(prices.calm_vs_month_pct)}% more than their month's average, and the
-          windiest tenth ${num(-prices.windy_vs_month_pct)}% less. The ${num(prices.storm_days)} days with damaging gusts in three or
-          more regions, the days that drive claims, were ${num(-prices.storm_vs_month_pct)}% cheaper.</p>
-      </div>
-      <div class="chart" id="prices"></div>
-      <p class="note">Storms bring a lot of wind power, so heavy property-claim days tend to be cheap-power days. That matters to a
-        group writing both property and energy risks. Data: ${num(prices.days)} days, ${day(prices.from)} to ${day(prices.to)}. The
-        Octopus Agile price is averaged across the 14 regions and compared with its month's average, so the 2022 spike doesn't
-        swamp the pattern.</p>
     </section>
 
     <section class="card">
@@ -329,6 +353,20 @@ async function render() {
           no deductibles or limits, no buildings and contents split, no demand surge and no secondary uncertainty.</li>
         <li><strong>Next.</strong> This is today's climate. A +2°C scenario (UKCP18) is next.</li>
       </ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Side analysis: power price against that month's average, by how windy the day was</h2>
+        <p class="lede">The calmest tenth of days cost ${num(prices.calm_vs_month_pct)}% more than their month's average, and the
+          windiest tenth ${num(-prices.windy_vs_month_pct)}% less. The ${num(prices.storm_days)} days with damaging gusts in three or
+          more regions, the days that drive claims, were ${num(-prices.storm_vs_month_pct)}% cheaper.</p>
+      </div>
+      <div class="chart" id="prices"></div>
+      <p class="note">Storms bring a lot of wind power, so heavy property-claim days tend to be cheap-power days. That matters to a
+        group writing both property and energy risks. Data: ${num(prices.days)} days, ${day(prices.from)} to ${day(prices.to)}. The
+        Octopus Agile price is averaged across the 14 regions and compared with its month's average, so the 2022 spike doesn't
+        swamp the pattern.</p>
     </section>
   </div>`;
 

@@ -1,17 +1,21 @@
 # UK Climate Risk
 
-A small catastrophe model for UK windstorm and flood: what a portfolio of properties loses in an average
-year, a 1-in-10 year and the 1-in-200 year Solvency II capital is held for, and what the same weather does
-to power prices. A sister project to Clean Power 2030, reusing its regions, weather and price data.
+A small, illustrative catastrophe model for UK windstorm and flood: what a portfolio of properties loses in
+an average year, a 1-in-10 year and the 1-in-200 year Solvency II capital is held for, and what the same
+weather does to power prices. A sister project to Clean Power 2030, reusing its regions, weather and price
+data. It was built to learn the method, so the figures are rough; the sensitivity check shows how rough.
 
 **Live:** https://tristanbowdenfreeman-maker.github.io/tiny-summit/climate-risk/
 
 ## What it finds
 
 - Insuring every property in Great Britain (about 29.7 million) against windstorm and river/coastal flood
-  costs about £0.7bn in an average year, £1.1bn in a 1-in-10 year and £3.2bn in a 1-in-200 year.
-- Flood drives the average, windstorm the tail: £2.7bn on its own in a 1-in-200 year, against £1.0bn
+  costs about £0.7bn in an average year, £1.1bn in a 1-in-10 year and £3.3bn in a 1-in-200 year.
+- Flood drives the average, windstorm the tail: £2.8bn on its own in a 1-in-200 year, against £1.0bn
   for flood.
+- The 1-in-200 is the least certain figure. Other reasonable choices, each recalibrated, put it anywhere
+  from £1.6bn to £8.6bn, and the windstorm calibration matters most. Simulation noise is small by comparison
+  (£3.1bn to £3.3bn across ten seeds).
 - South West and North East England have the highest risk cost per property, mostly from flood. Scotland,
   South Wales and London have the lowest, though flood there is barely covered (see Limits).
 - On the Agile tariff, calm days cost about 11% more than their month's average and the windiest days about
@@ -40,7 +44,12 @@ The page's figures come from the data, so they may have moved on from these.
    - Frequency × severity for each region and peril: a Poisson number of loss days a year.
    - Each day's loss is resampled from history, with a generalised Pareto tail on the largest 10%.
    - This runs for 100,000 years.
-6. **Checks**: the model is set against five ABI events, three of which it wasn't calibrated on.
+6. **Back-test**: the model is set against five ABI events. February 2020 and 2022 calibrate windstorm and the
+   2023 storms fall in the year flood is calibrated on, so only 2015-16 and 2007 are clean tests.
+7. **Sensitivity**: the GB figures are rerun with one choice changed at a time, each recalibrated: windstorm
+   calibrated on 2020 or 2022 alone, a damage exponent of 2 or 4, and a Pareto tail on 5%, 20% or none of
+   the loss days. Ten seeds measure simulation noise, and 30 resamples of the historical years show how much
+   the 1-in-200 depends on the 47 years history gave.
 
 ```bash
 python climate_risk/fetch.py
