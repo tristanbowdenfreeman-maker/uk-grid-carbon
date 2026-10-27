@@ -1,0 +1,82 @@
+{
+ "from": "2018-05-01",
+ "to": "2026-08-31",
+ "days": 3045,
+ "deciles": [
+  {
+   "decile": 1,
+   "wind_ms": 3.6,
+   "vs_month_pct": 10.7,
+   "price_p": 22.6,
+   "days": 305
+  },
+  {
+   "decile": 2,
+   "wind_ms": 4.5,
+   "vs_month_pct": 8.8,
+   "price_p": 22.2,
+   "days": 304
+  },
+  {
+   "decile": 3,
+   "wind_ms": 5.1,
+   "vs_month_pct": 6.6,
+   "price_p": 20.9,
+   "days": 305
+  },
+  {
+   "decile": 4,
+   "wind_ms": 5.7,
+   "vs_month_pct": 6.0,
+   "price_p": 21.6,
+   "days": 304
+  },
+  {
+   "decile": 5,
+   "wind_ms": 6.3,
+   "vs_month_pct": 4.2,
+   "price_p": 20.6,
+   "days": 305
+  },
+  {
+   "decile": 6,
+   "wind_ms": 6.9,
+   "vs_month_pct": 1.1,
+   "price_p": 20.8,
+   "days": 304
+  },
+  {
+   "decile": 7,
+   "wind_ms": 7.6,
+   "vs_month_pct": -0.5,
+   "price_p": 19.2,
+   "days": 304
+  },
+  {
+   "decile": 8,
+   "wind_ms": 8.4,
+   "vs_month_pct": -6.2,
+   "price_p": 17.3,
+   "days": 305
+  },
+  {
+   "decile": 9,
+   "wind_ms": 9.5,
+   "vs_month_pct": -13.5,
+   "price_p": 17.5,
+   "days": 304
+  },
+  {
+   "decile": 10,
+   "wind_ms": 11.7,
+   "vs_month_pct": -17.3,
+   "price_p": 15.3,
+   "days": 305
+  }
+ ],
+ "calm_vs_month_pct": 10.7,
+ "windy_vs_month_pct": -17.3,
+ "storm_days": 95,
+ "storm_vs_month_pct": -15.5,
+ "calm_minus_windy_p": 7.4
+}

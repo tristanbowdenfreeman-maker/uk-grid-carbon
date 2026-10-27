@@ -9,6 +9,9 @@ pipeline and shown in a two-page interactive dashboard.
 **Live:** https://tristanbowdenfreeman-maker.github.io/tiny-summit/carbon/ (part of my
 [portfolio](https://tristanbowdenfreeman-maker.github.io/tiny-summit/))
 
+**Sister project:** [UK Climate Risk](climate_risk/), a small catastrophe model for UK windstorm and
+flood built on the same regions, weather and prices.
+
 ## What it finds
 
 - About 68% of the electricity generated in Britain over the last 12 months came from clean

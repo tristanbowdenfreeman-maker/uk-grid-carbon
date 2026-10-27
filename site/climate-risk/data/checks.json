@@ -1,0 +1,64 @@
+[
+ {
+  "name": "Storms Ciara, Dennis and Jorge",
+  "start": "2020-02-08",
+  "end": "2020-03-01",
+  "abi": 543000000.0,
+  "abi_wind": 222884297.52066115,
+  "abi_note": "storm and flood claims",
+  "fits": "storm",
+  "model_storm": 534500607,
+  "model_flood": 531392493,
+  "model": 1065893100,
+  "ratio": 1.96
+ },
+ {
+  "name": "Storms Dudley, Eunice and Franklin",
+  "start": "2022-02-16",
+  "end": "2022-02-21",
+  "abi": 473000000.0,
+  "abi_wind": 473000000.0,
+  "abi_note": "property claims",
+  "fits": "storm",
+  "model_storm": 161383690,
+  "model_flood": 156115309,
+  "model": 317498999,
+  "ratio": 0.67
+ },
+ {
+  "name": "Storms Babet, Ciarán and Debi",
+  "start": "2023-10-18",
+  "end": "2023-11-14",
+  "abi": 507000000.0,
+  "abi_note": "home and business claims",
+  "fits": null,
+  "model_storm": 934481,
+  "model_flood": 400295663,
+  "model": 401230144,
+  "ratio": 0.79
+ },
+ {
+  "name": "Winter floods (Desmond, Eva, Frank)",
+  "start": "2015-12-03",
+  "end": "2016-01-03",
+  "abi": 1300000000.0,
+  "abi_note": "flood claims",
+  "fits": null,
+  "model_storm": 22183749,
+  "model_flood": 336248357,
+  "model": 358432106,
+  "ratio": 0.28
+ },
+ {
+  "name": "Summer 2007 floods",
+  "start": "2007-06-15",
+  "end": "2007-07-31",
+  "abi": 3000000000.0,
+  "abi_note": "all claims",
+  "fits": null,
+  "model_storm": 366,
+  "model_flood": 219161875,
+  "model": 219162242,
+  "ratio": 0.07
+ }
+]

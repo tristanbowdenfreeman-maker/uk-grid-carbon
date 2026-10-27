@@ -1,0 +1,6 @@
+-r ../requirements.txt
+scipy>=1.13
+pyarrow>=16.0
+odfpy>=1.4
+shapely>=2.0
+pyproj>=3.6

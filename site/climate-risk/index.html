@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2f5d6b">
+  <title>UK Climate Risk</title>
+  <meta name="author" content="Tristan Bowden-Freeman">
+  <meta name="description" content="A small catastrophe model for UK windstorm and flood: 47 years of storms and 20 years of flood warnings run against a made-up portfolio of every property in Great Britain, checked against ABI claims, and what the same weather does to power prices.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script data-goatcounter="https://tristanbf.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <nav class="site-nav" aria-label="Pages">
+    <a class="site-nav__back" href="https://tristanbowdenfreeman-maker.github.io/tiny-summit/" aria-label="Back to portfolio"><span aria-hidden="true">&larr;</span><span class="site-nav__back-label">Portfolio</span></a>
+    <span class="site-nav__brand">UK Climate Risk</span>
+  </nav>
+
+  <main id="view" aria-live="polite"><p class="loading">Loading…</p></main>
+
+  <footer class="footer">
+    <p class="credit">Made by <a href="https://tristanbowdenfreeman-maker.github.io/tiny-summit/">Tristan Bowden-Freeman</a>.
+      A sister project to <a href="https://tristanbowdenfreeman-maker.github.io/tiny-summit/carbon/">Clean Power 2030</a>.</p>
+    <p class="updated" id="updated"></p>
+    <p>Gusts from Open-Meteo (ERA5). Flood warnings and flood areas from the Environment Agency. Region boundaries
+      from the NESO Data Portal. Prices from Octopus Energy's Agile tariff. Loss figures from the Association of
+      British Insurers. <a href="https://github.com/tristanbowdenfreeman-maker/uk-grid-carbon/tree/main/climate_risk">Code on GitHub</a></p>
+    <p class="legal">Contains Environment Agency information © Environment Agency and/or database right, and public
+      sector information licensed under the Open Government Licence v3.0. Contains NESO data licensed under the NESO
+      Open Data Licence. Open-Meteo data under CC BY 4.0.</p>
+  </footer>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

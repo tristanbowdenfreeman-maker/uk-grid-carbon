@@ -1,0 +1,12 @@
+{
+ "built": "2026-10-27",
+ "storm_years": [
+  1979,
+  2025
+ ],
+ "flood_years": [
+  2006,
+  2025
+ ],
+ "simulated_years": 100000
+}

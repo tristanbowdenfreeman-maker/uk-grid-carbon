@@ -1,0 +1,324 @@
+{
+ "properties": 29700000,
+ "storm_eal": 236816703,
+ "flood_eal": 502571205,
+ "eal": 739387908,
+ "simulated_eal": 791082322,
+ "rp10": 1072782556,
+ "rp200": 3247874177,
+ "storm_rp200": 2716668354,
+ "flood_rp200": 1028702326,
+ "curve": [
+  {
+   "years": 2,
+   "total": 692534054,
+   "storm": 173990423,
+   "flood": 485375150
+  },
+  {
+   "years": 5,
+   "total": 906676567,
+   "storm": 339648367,
+   "flood": 610549986
+  },
+  {
+   "years": 10,
+   "total": 1072782556,
+   "storm": 497882668,
+   "flood": 689124593
+  },
+  {
+   "years": 20,
+   "total": 1290554232,
+   "storm": 719889596,
+   "flood": 763206731
+  },
+  {
+   "years": 50,
+   "total": 1741121558,
+   "storm": 1188532310,
+   "flood": 858798796
+  },
+  {
+   "years": 100,
+   "total": 2272842666,
+   "storm": 1760514352,
+   "flood": 942368079
+  },
+  {
+   "years": 200,
+   "total": 3247874177,
+   "storm": 2716668354,
+   "flood": 1028702326
+  },
+  {
+   "years": 500,
+   "total": 5371708604,
+   "storm": 4839953001,
+   "flood": 1147261773
+  }
+ ],
+ "history": [
+  {
+   "year": 1979,
+   "storm": 58227392,
+   "flood": null
+  },
+  {
+   "year": 1980,
+   "storm": 36275422,
+   "flood": null
+  },
+  {
+   "year": 1981,
+   "storm": 110019143,
+   "flood": null
+  },
+  {
+   "year": 1982,
+   "storm": 99777970,
+   "flood": null
+  },
+  {
+   "year": 1983,
+   "storm": 231312415,
+   "flood": null
+  },
+  {
+   "year": 1984,
+   "storm": 575465454,
+   "flood": null
+  },
+  {
+   "year": 1985,
+   "storm": 8993305,
+   "flood": null
+  },
+  {
+   "year": 1986,
+   "storm": 158983544,
+   "flood": null
+  },
+  {
+   "year": 1987,
+   "storm": 399072779,
+   "flood": null
+  },
+  {
+   "year": 1988,
+   "storm": 137850174,
+   "flood": null
+  },
+  {
+   "year": 1989,
+   "storm": 266073202,
+   "flood": null
+  },
+  {
+   "year": 1990,
+   "storm": 1622639716,
+   "flood": null
+  },
+  {
+   "year": 1991,
+   "storm": 207972567,
+   "flood": null
+  },
+  {
+   "year": 1992,
+   "storm": 32905797,
+   "flood": null
+  },
+  {
+   "year": 1993,
+   "storm": 439222368,
+   "flood": null
+  },
+  {
+   "year": 1994,
+   "storm": 240635743,
+   "flood": null
+  },
+  {
+   "year": 1995,
+   "storm": 221932061,
+   "flood": null
+  },
+  {
+   "year": 1996,
+   "storm": 33702155,
+   "flood": null
+  },
+  {
+   "year": 1997,
+   "storm": 458835793,
+   "flood": null
+  },
+  {
+   "year": 1998,
+   "storm": 332479552,
+   "flood": null
+  },
+  {
+   "year": 1999,
+   "storm": 364504218,
+   "flood": null
+  },
+  {
+   "year": 2000,
+   "storm": 518990449,
+   "flood": null
+  },
+  {
+   "year": 2001,
+   "storm": 21741592,
+   "flood": null
+  },
+  {
+   "year": 2002,
+   "storm": 358123165,
+   "flood": null
+  },
+  {
+   "year": 2003,
+   "storm": 5931237,
+   "flood": null
+  },
+  {
+   "year": 2004,
+   "storm": 102831918,
+   "flood": null
+  },
+  {
+   "year": 2005,
+   "storm": 214606203,
+   "flood": null
+  },
+  {
+   "year": 2006,
+   "storm": 125010161,
+   "flood": 131597199
+  },
+  {
+   "year": 2007,
+   "storm": 438295978,
+   "flood": 425814511
+  },
+  {
+   "year": 2008,
+   "storm": 242439582,
+   "flood": 507875122
+  },
+  {
+   "year": 2009,
+   "storm": 86129086,
+   "flood": 233172224
+  },
+  {
+   "year": 2010,
+   "storm": 7940010,
+   "flood": 135099786
+  },
+  {
+   "year": 2011,
+   "storm": 73385124,
+   "flood": 80059133
+  },
+  {
+   "year": 2012,
+   "storm": 156027454,
+   "flood": 924182612
+  },
+  {
+   "year": 2013,
+   "storm": 688522619,
+   "flood": 497367361
+  },
+  {
+   "year": 2014,
+   "storm": 241031264,
+   "flood": 770068782
+  },
+  {
+   "year": 2015,
+   "storm": 194948937,
+   "flood": 530892123
+  },
+  {
+   "year": 2016,
+   "storm": 86809287,
+   "flood": 401796772
+  },
+  {
+   "year": 2017,
+   "storm": 126642135,
+   "flood": 192141918
+  },
+  {
+   "year": 2018,
+   "storm": 187352524,
+   "flood": 233172224
+  },
+  {
+   "year": 2019,
+   "storm": 109045926,
+   "flood": 652982300
+  },
+  {
+   "year": 2020,
+   "storm": 703537028,
+   "flood": 957707374
+  },
+  {
+   "year": 2021,
+   "storm": 96752763,
+   "flood": 435821903
+  },
+  {
+   "year": 2022,
+   "storm": 186532856,
+   "flood": 292215834
+  },
+  {
+   "year": 2023,
+   "storm": 14873564,
+   "flood": 848126436
+  },
+  {
+   "year": 2024,
+   "storm": 68048580,
+   "flood": 1258429490
+  },
+  {
+   "year": 2025,
+   "storm": 37954815,
+   "flood": 542900993
+  }
+ ],
+ "worst_storm_days": [
+  {
+   "day": "1990-01-25",
+   "loss": 584460447
+  },
+  {
+   "day": "2000-10-30",
+   "loss": 392276635
+  },
+  {
+   "day": "1990-02-26",
+   "loss": 384523609
+  },
+  {
+   "day": "1984-01-13",
+   "loss": 378392961
+  },
+  {
+   "day": "2020-02-09",
+   "loss": 370613766
+  }
+ ],
+ "model_2023": 863000000,
+ "abi_2023": 863000000.0,
+ "storm_scale_per_property": 141,
+ "flood_scale_per_warning": 500370
+}
