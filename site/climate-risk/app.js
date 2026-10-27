@@ -75,7 +75,7 @@ function drawCurve(el, gb) {
     labels.push(`<text x="${pad.left - 8}" y="${sy(v) + 4}" text-anchor="end">£${num(v / 1e9)}bn</text>`);
   }
   for (const y of years) labels.push(`<text x="${sx(Math.log10(y))}" y="${h - 20}" text-anchor="middle">1 in ${y}</text>`);
-  labels.push(`<text x="${(pad.left + w - pad.right) / 2}" y="${h - 2}" text-anchor="middle">How rare a year (log scale)</text>`);
+  labels.push(`<text x="${(pad.left + w - pad.right) / 2}" y="${h - 2}" text-anchor="middle">Return period (years, log scale)</text>`);
   const line = (key, cls) => `<path class="line ${cls}" d="${pathOf(gb.curve.map((c) => [sx(Math.log10(c.years)), sy(c[key])]))}"/>`;
   const x200 = sx(Math.log10(200));
   const dots = gb.curve.map((c) => `<circle class="dot total" r="5" cx="${sx(Math.log10(c.years))}" cy="${sy(c.total)}" tabindex="0"
@@ -140,10 +140,10 @@ function drawMap(el, map, regions) {
 const COLUMNS = [
   ["region", "Region", (r) => esc(r.region)],
   ["risk_cost_per_property", "Risk cost per property", (r) => `£${num(r.risk_cost_per_property)}`],
-  ["storm_eal", "Windstorm a year", (r) => money(r.storm_eal)],
-  ["flood_eal", "Flood a year", (r) => (r.flood_coverage === "none" ? `<span class="faint">no data</span>` : money(r.flood_eal) + (r.flood_coverage === "partial" ? "*" : ""))],
-  ["rp10", "1 in 10", (r) => money(r.rp10)],
-  ["rp200", "1 in 200", (r) => money(r.rp200)],
+  ["storm_eal", "Windstorm EAL", (r) => money(r.storm_eal)],
+  ["flood_eal", "Flood EAL", (r) => (r.flood_coverage === "none" ? `<span class="faint">no data</span>` : money(r.flood_eal) + (r.flood_coverage === "partial" ? "*" : ""))],
+  ["rp10", "1-in-10", (r) => money(r.rp10)],
+  ["rp200", "1-in-200", (r) => money(r.rp200)],
 ];
 
 function drawTable(el, regions, sortKey = "risk_cost_per_property") {
@@ -221,11 +221,11 @@ async function render() {
     <section class="hero">
       <h1>A <span class="big">${money(gb.rp200)}</span> year<span class="soft">is the 1-in-200 for UK windstorm and flood</span></h1>
       <p>I ran 47 years of storms (${meta.storm_years[0]}–${meta.storm_years[1]}) and 20 years of flood warnings
-        (${meta.flood_years[0]}–${meta.flood_years[1]}) against a made-up portfolio that insures all
+        (${meta.flood_years[0]}–${meta.flood_years[1]}) against a hypothetical portfolio of all
         ${num(gb.properties / 1e6, 1)} million properties in Great Britain, then simulated ${num(meta.simulated_years)} years.
-        The model is calibrated on ABI claims and checked against storms and floods it wasn't fitted to.</p>
+        It's calibrated on ABI claims and validated on events it wasn't fitted to.</p>
       <ul class="figures">
-        <li><strong>${money(gb.eal)}</strong><span>Average year</span></li>
+        <li><strong>${money(gb.eal)}</strong><span>Average year (EAL)</span></li>
         <li><strong>${money(gb.rp10)}</strong><span>1-in-10 year</span></li>
         <li><strong>${money(gb.rp200)}</strong><span>1-in-200 year</span></li>
       </ul>
@@ -241,30 +241,28 @@ async function render() {
         <div class="map" id="map"></div>
         <div>
           <div class="table-wrap" id="regions"></div>
-          <p class="note">Risk cost per property is the expected annual loss divided by the properties in the region: the pure premium,
-            before expenses, reinsurance and profit. Click a column to sort. 1-in-10 and 1-in-200 are fitted region by region,
-            so they don't add up to the GB figures. *Flood counts only the English flood areas in that region; the Environment
-            Agency doesn't cover Scotland or Wales.</p>
+          <p class="note">Risk cost per property is EAL ÷ properties: the pure premium, before expenses, reinsurance and profit.
+            Return-period losses aren't additive, so the regional 1-in-10s and 1-in-200s don't sum to the GB figures.
+            Click a column to sort. *English flood areas only; the Environment Agency doesn't cover Scotland or Wales.</p>
         </div>
       </div>
     </section>
 
     <section class="card">
       <div class="card-head">
-        <h2>Annual loss against how rare the year is</h2>
-        <p class="lede">The tail is windstorm: on its own it reaches ${money(gb.storm_rp200)} in a 1-in-200 year, against
-          ${money(gb.flood_rp200)} for flood. Flood happens most years, so it drives the average, but its worst years are less extreme.</p>
+        <h2>Exceedance curve: annual loss by return period</h2>
+        <p class="lede">Windstorm drives the tail: ${money(gb.storm_rp200)} on its own in a 1-in-200 year, against
+          ${money(gb.flood_rp200)} for flood. Flood happens most years, so it drives the average.</p>
       </div>
       ${legend([["var(--total)", "Windstorm and flood"], ["var(--storm)", "Windstorm alone"], ["var(--flood)", "Flood alone"]])}
       <div class="chart" id="curve"></div>
-      <p class="note">An exceedance curve. Each point is the loss a year has that chance of beating, from ${num(meta.simulated_years)} simulated
-        years: a Poisson number of loss days, each drawn from history, with a generalised Pareto tail on the largest 10% so a
-        day can be worse than any on record. Insurers hold capital for the 1-in-200 year under Solvency II.</p>
+      <p class="note">Each point is the annual loss with that chance of being exceeded in a year (an AEP curve), from
+        ${num(meta.simulated_years)} simulated years. Solvency II sets capital at the 1-in-200, the 99.5% one-year VaR.</p>
     </section>
 
     <section class="card">
       <div class="card-head">
-        <h2>Modelled loss in each year since ${meta.storm_years[0]}, as if it hit today's properties</h2>
+        <h2>As-if losses: each year since ${meta.storm_years[0]} replayed on today's properties</h2>
         <p class="lede">The worst was ${worstYear.year} at ${money(worstYear.storm + (worstYear.flood ?? 0))}. The costliest single day was
           ${day(worst.day)} (${money(worst.loss)})${worst.day === "1990-01-25" ? ", the Burns' Day storm" : ""}.</p>
       </div>
@@ -274,28 +272,30 @@ async function render() {
 
     <section class="card">
       <div class="card-head">
-        <h2>How often each region has a loss day, and how big it is</h2>
-        <p class="lede">Frequency × severity. Storm days are about as common everywhere, because each region's threshold is its own
-          98th-percentile gust; what changes is how many properties are exposed.</p>
+        <h2>Frequency and severity: how often each region has a loss day, and how big</h2>
+        <p class="lede">Storm days are about as common everywhere, because each region's threshold is its own 98th-percentile gust.
+          What changes is how many properties are exposed.</p>
       </div>
       <div class="table-wrap">${frequencyTable(regions)}</div>
     </section>
 
     <section class="card">
       <div class="card-head">
-        <h2>The model against what insurers actually paid</h2>
-        <p class="lede">${tests.length} of ${checks.length} events are tests the model wasn't calibrated on. It does well on the 2023 storms
-          but misses deep river and surface-water floods by a long way.</p>
+        <h2>Validation: the model against what insurers actually paid</h2>
+        <p class="lede">${tests.length} of ${checks.length} events are out-of-sample tests. Close on the 2023 storms, far too low on
+          deep river and surface-water floods.</p>
       </div>
       <div class="table-wrap">${checksTable(checks)}</div>
-      <p class="note">Windstorm is calibrated on the February 2020 and 2022 storm clusters together, using only the wind part of
-        each (the ABI put 2020 at 41% wind and 59% flood). One scale can't match both. With one gust point per region, the model
-        sees 2020's gusts as far worse than 2022's, so it overstates 2020 and understates 2022. Flood is high for 2020 as well,
-        because Ciara and Dennis set off a burst of flood warnings and each warning counts the same whether one home floods or a
-        hundred. The model barely sees Ciarán, whose strongest winds were on the south coast, so its 2023 match comes from flood.
-        Flood is calibrated on the ABI's weather claims for the whole of 2023, less burst pipes (${money(gb.abi_2023)}), so the
-        2023 storms aren't a fully independent test. Desmond (2015) and the 2007 summer floods come in far too low because a
-        warning says where water is expected, not how deep it is, and 2007 was mostly surface water, which warnings don't cover.</p>
+      <ul class="method checks">
+        <li><strong>Calibration.</strong> Windstorm on the wind part of February 2020 and 2022 together (the ABI put 2020 at 41% wind).
+          Flood on the ABI's 2023 weather claims, less burst pipes (${money(gb.abi_2023)}).</li>
+        <li><strong>2020 too high, 2022 too low.</strong> With one gust point per region, 2020's gusts look far worse than 2022's. 2020
+          also had a burst of flood warnings, and each counts the same whether one home floods or a hundred.</li>
+        <li><strong>2023 not fully independent.</strong> The model barely sees Ciarán, whose strongest winds were on the south coast,
+          so the match comes from flood, which is calibrated on 2023.</li>
+        <li><strong>2015 and 2007 far too low.</strong> A warning says where water is expected, not how deep. 2007 was mostly surface
+          water, which warnings don't cover.</li>
+      </ul>
     </section>
 
     <section class="card">
@@ -306,27 +306,28 @@ async function render() {
           more regions, the days that drive claims, were ${num(-prices.storm_vs_month_pct)}% cheaper.</p>
       </div>
       <div class="chart" id="prices"></div>
-      <p class="note">${num(prices.days)} days, ${day(prices.from)} to ${day(prices.to)}: the Octopus Agile price averaged across the
-        14 regions, set against the average for its month so the 2022 price spike doesn't swamp the pattern, grouped into tenths by
-        average wind at 100 m. The same storm that drives claims floods the grid with wind power, while still, cold spells push
-        prices up when no one is claiming. An insurer with both property and energy business sees its heaviest property claims on
-        days of cheap power.</p>
+      <p class="note">Storms bring a lot of wind power, so heavy property-claim days tend to be cheap-power days. That matters to a
+        group writing both property and energy risks. Data: ${num(prices.days)} days, ${day(prices.from)} to ${day(prices.to)}. The
+        Octopus Agile price is averaged across the 14 regions and compared with its month's average, so the 2022 spike doesn't
+        swamp the pattern.</p>
     </section>
 
     <section class="card">
       <div class="card-head"><h2>Method and limits</h2></div>
       <ul class="method">
-        <li><strong>Portfolio.</strong> Every property connected to each of the 14 electricity regions (about ${num(gb.properties / 1e6, 1)} million,
-          rounded DNO customer numbers) is insured. It's made up, but the exposure is real.</li>
-        <li><strong>Windstorm.</strong> The strongest gust each day at one point per region (ERA5). Following Klawa and Ulbrich (2003), only
+        <li><strong>Exposure.</strong> Every property connected in the 14 electricity regions, about ${num(gb.properties / 1e6, 1)} million
+          (rounded DNO customer numbers). The policies are hypothetical; the property counts are real.</li>
+        <li><strong>Windstorm hazard and damage.</strong> The strongest gust each day at one point per region (ERA5). Following Klawa and Ulbrich (2003), only
           gusts above that point's own 98th percentile do damage, and loss grows with the cube of the excess.</li>
-        <li><strong>Flood.</strong> Every Flood Warning and Severe Flood Warning the Environment Agency issued since 2006, placed in a region
+        <li><strong>Flood hazard and damage.</strong> Every Flood Warning and Severe Flood Warning the Environment Agency issued since 2006, placed in a region
           by its flood area's centre. Each warning is a fixed loss, £${num(gb.flood_scale_per_warning / 1e3)}k after calibration.</li>
-        <li><strong>As if today.</strong> Every past year runs against today's properties and today's claim costs, so the years can be compared.</li>
-        <li><strong>Simulation.</strong> Poisson loss days a year and an empirical severity with a generalised Pareto tail, for each region
-          and peril. GB is fitted on national loss days, so one storm can hit many regions at once.</li>
-        <li><strong>Not included.</strong> Surface water, coastal surge outside warnings, subsidence, freeze, contents vs buildings,
-          deductibles and limits, and climate change: this is today's climate. A +2°C scenario is next.</li>
+        <li><strong>As-if basis.</strong> Every past year runs against today's properties and claim costs, so the years can be compared.</li>
+        <li><strong>Simulation.</strong> Frequency × severity for each region and peril: a Poisson number of loss days a year, each drawn from history, with a
+          generalised Pareto tail on the largest 10% so a day can be worse than any on record. GB is fitted on national loss days,
+          so one storm can hit many regions at once.</li>
+        <li><strong>Not included.</strong> Surface water, coastal surge outside warnings, subsidence and freeze. Losses are ground-up:
+          no deductibles or limits, no buildings and contents split, no demand surge and no secondary uncertainty.</li>
+        <li><strong>Next.</strong> This is today's climate. A +2°C scenario (UKCP18) is next.</li>
       </ul>
     </section>
   </div>`;

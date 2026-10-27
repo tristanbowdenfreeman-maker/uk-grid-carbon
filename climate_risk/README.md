@@ -1,9 +1,8 @@
 # UK Climate Risk
 
-A small catastrophe model for UK windstorm and flood. I built it to show how an insurer sizes weather
-risk: how much a portfolio of properties loses in an average year, in a 1-in-10 year and in the 1-in-200
-year that Solvency II capital is held for. It also shows what the same weather does to power prices. It's
-a sister project to Clean Power 2030 and reuses its regions, weather and price data.
+A small catastrophe model for UK windstorm and flood: what a portfolio of properties loses in an average
+year, a 1-in-10 year and the 1-in-200 year Solvency II capital is held for, and what the same weather does
+to power prices. A sister project to Clean Power 2030, reusing its regions, weather and price data.
 
 **Live:** https://tristanbowdenfreeman-maker.github.io/tiny-summit/climate-risk/
 
@@ -11,12 +10,12 @@ a sister project to Clean Power 2030 and reuses its regions, weather and price d
 
 - Insuring every property in Great Britain (about 29.7 million) against windstorm and river/coastal flood
   costs about £0.7bn in an average year, £1.1bn in a 1-in-10 year and £3.2bn in a 1-in-200 year.
-- Flood drives the average and windstorm drives the tail. Flood happens most years, while windstorm on its
-  own reaches £2.7bn in a 1-in-200 year, against £1.0bn for flood.
+- Flood drives the average, windstorm the tail: £2.7bn on its own in a 1-in-200 year, against £1.0bn
+  for flood.
 - South West and North East England have the highest risk cost per property, mostly from flood. Scotland,
-  South Wales and London have the lowest, though flood in Scotland and Wales is barely covered (see below).
-- Calm days cost about 11% more than their month's average on the Agile tariff, and the windiest days
-  about 17% less. The storm days that drive claims are some of the cheapest days for power.
+  South Wales and London have the lowest, though flood there is barely covered (see Limits).
+- On the Agile tariff, calm days cost about 11% more than their month's average and the windiest days about
+  17% less, so the storm days that drive claims are some of the cheapest for power.
 
 The page's figures come from the data, so they may have moved on from these.
 
@@ -26,7 +25,7 @@ The page's figures come from the data, so they may have moved on from these.
    - The strongest gust each day since 1979 at one point per region, from Open-Meteo's ERA5 archive.
    - Every flood warning the Environment Agency has issued since 2006.
    - Each flood warning area is placed in a region using NESO's DNO boundaries.
-2. **Exposure** ([portfolio.csv](portfolio.csv)): a made-up portfolio that insures every property
+2. **Exposure** ([portfolio.csv](portfolio.csv)): a hypothetical portfolio that insures every property
    connected in each of the 14 electricity regions. The counts are rounded DNO customer numbers.
 3. **Vulnerability** ([model.py](model.py))
    - Windstorm follows Klawa & Ulbrich (2003). Only gusts above a place's own 98th percentile do damage,
@@ -58,23 +57,20 @@ reads the Agile and weather files Clean Power 2030's pipeline caches in `raw/`.
 ## Limits
 
 - **The flood proxy is the weak point.** A warning says where water is expected, not how deep it is or how
-  many homes it reaches.
-  - The model gets the 2023 storms roughly right (0.8×), mostly through flood.
-  - It's about 3.5× too low for Desmond in 2015-16, when record river levels flooded fewer, deeper areas.
-  - It's about 14× too low for summer 2007, which was mostly surface water, and flood warnings don't cover
-    surface water.
-- **Windstorm uses one gust point per region**, so it misses storms whose worst winds stay on the coast,
-  like Ciarán in 2023. It also sees February 2020's gusts as much worse than February 2022's, so one scale
-  can't fit both: it overstates 2020 (2.0×) and understates 2022 (0.7×). More ERA5 points per region, from
-  the same API, is the first thing to try.
-- **Flood is England only.** It covers no flood in North Scotland, and only the English edges of South
-  Scotland and the two Welsh regions.
-- **Losses are as if today**: every past year is run against today's properties and claim costs. Climate
-  change isn't in it yet; a +2°C scenario (UKCP18) is the next step.
-- **Regional 1-in-10 and 1-in-200 are fitted region by region**, so they don't add up to the GB figures.
+  many homes it reaches. The model is close on the 2023 storms (0.8×, mostly flood), about 3.5× too low on
+  Desmond in 2015-16 (fewer, deeper floods) and about 14× too low on summer 2007 (mostly surface water,
+  which warnings don't cover).
+- **One gust point per region.** It misses storms whose worst winds stay on the coast, like Ciarán, and sees
+  February 2020 as much worse than February 2022, so one scale overstates 2020 (2.0×) and understates 2022
+  (0.7×). More ERA5 points per region, from the same API, is the first thing to try.
+- **Flood is England only.** None in North Scotland, and only the English edges of South Scotland and the two
+  Welsh regions.
+- **Losses are as if today.** Every past year runs against today's properties and claim costs, in today's
+  climate. A +2°C scenario (UKCP18) is next.
+- **Regional 1-in-10 and 1-in-200 are fitted per region**, so they don't add up to the GB figures.
 - **Not modelled:** surface water, subsidence, freeze, deductibles and policy limits.
-- **The ABI has revised its 2023 figure.** Its February 2025 release implies 2023 home weather claims of about
-  £458m, against the £573m used here from its April 2024 release.
+- **The ABI has revised 2023.** Its February 2025 release implies about £458m of home weather claims, against
+  the £573m used here from April 2024.
 
 ## Sources
 

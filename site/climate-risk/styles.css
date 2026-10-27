@@ -126,6 +126,7 @@ tr.is-test td:first-child::after { content: "test"; margin-left: 0.5rem; padding
 .method { columns: 2 22rem; column-gap: 2.5rem; margin: 0; padding: 0; list-style: none; }
 .method li { break-inside: avoid; margin: 0 0 1rem; color: var(--muted); }
 .method strong { color: var(--text); }
+.checks { margin-top: 1.25rem; }
 
 .tip {
   position: fixed; z-index: 50; left: 0; top: 0; pointer-events: none; opacity: 0; max-width: 18rem;
