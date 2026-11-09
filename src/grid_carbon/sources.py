@@ -118,11 +118,11 @@ def all_windows(today: date | None = None) -> list[Window]:
 class Downloader:
     """A requests session with retries; pauses between calls to stay polite to free APIs.
 
-    With a cache folder (local runs use raw/), settled windows are kept on disk, so rebuilding
-    the database doesn't download eight years of data again.
+    Every window is written to the cache folder (raw/) and the loaders read it from there. Settled
+    windows are kept, so rebuilding the database doesn't download eight years of data again.
     """
 
-    def __init__(self, pause: float = 0.3, cache: Path | None = None):
+    def __init__(self, cache: Path, pause: float = 0.3):
         self.session = requests.Session()
         self.session.headers["User-Agent"] = "uk-grid-carbon (portfolio project)"
         self.pause = pause
@@ -139,17 +139,30 @@ class Downloader:
         response.raise_for_status()
         return response
 
-    def fetch(self, window: Window) -> str:
-        """The window's data as a JSON string, as the API sent it."""
+    def paths(self, window: Window) -> tuple[Path, Path]:
+        """Where a window's file lives once settled, and where it lives until then. They are kept apart
+        so a window downloaded early is never mistaken for a final one."""
+        name = f"{window.start.isoformat()}.json"
+        return self.cache / window.source / name, self.cache / "_unsettled" / window.source / name
+
+    def locate(self, window: Window) -> Path:
+        """The newest downloaded file for a window."""
+        found = [p for p in self.paths(window) if p.exists()]
+        if not found:
+            raise FileNotFoundError(f"{window.source} {window.start} has not been downloaded")
+        return max(found, key=lambda p: p.stat().st_mtime)
+
+    def fetch(self, window: Window) -> Path:
+        """Download the window (unless a settled copy is already on disk) and return its file, with the
+        data exactly as the API sent it."""
         settled = window.source != "capacity" and window.end + timedelta(days=7) < datetime.now(timezone.utc).date()
-        path = self.cache / window.source / f"{window.start.isoformat()}.json" if self.cache else None
-        if path and settled and path.exists():
-            return path.read_text()
-        payload = self._download(window)
-        if path and settled:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(payload)
-        return payload
+        final, interim = self.paths(window)
+        if settled and final.exists():
+            return final
+        path = final if settled else interim
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self._download(window))
+        return path
 
     def _download(self, window: Window) -> str:
         stamp = "%Y-%m-%dT%H:%MZ"

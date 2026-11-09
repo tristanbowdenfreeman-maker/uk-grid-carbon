@@ -60,7 +60,7 @@ python climate_risk/model.py
 ```
 
 The model writes `site/climate-risk/data/*.json`. Install its extra packages from
-[requirements.txt](requirements.txt) (kept apart from the Azure pipeline's). The price comparison
+[requirements.txt](requirements.txt) (kept apart from the main pipeline's). The price comparison
 reads the Agile and weather files Clean Power 2030's pipeline caches in `raw/`.
 
 ## Limits

@@ -2,9 +2,8 @@
 -- the share of half-hours that were 'very low' or 'low', the average share of each fuel, and
 -- clean_pct: the clean share of electricity generated in the region (imports left out, the same
 -- measure as the national headline).
--- The mix comes from the 25-million-row columnstore table, summed by day before the period join.
-CREATE OR ALTER VIEW mart.v_region_summary
-AS
+-- The mix comes from the 25-million-row table, summed by day before the period join.
+CREATE OR REPLACE VIEW mart.v_region_summary AS
 WITH intensity AS (
     SELECT p.period, ri.region_id,
            COUNT(*) AS periods,
@@ -59,4 +58,3 @@ SELECT i.period,
 FROM intensity AS i
 JOIN dim.region AS r ON r.region_id = i.region_id
 LEFT JOIN mix AS m ON m.period = i.period AND m.region_id = i.region_id;
-GO

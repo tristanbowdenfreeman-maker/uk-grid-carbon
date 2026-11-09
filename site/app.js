@@ -1,13 +1,13 @@
 // Clean Power 2030: is Britain on track for 95% clean electricity by 2030? Two cross-filtered
-// pages read the JSON exported from the Azure SQL mart views: "Are we on track?" (#/) and
+// pages read the JSON exported from the DuckDB mart views: "Are we on track?" (#/) and
 // "Where and when?" (#/where). The region picker in the nav filters both, and clicking the map
 // sets it. The "right now" line calls the Carbon Intensity API from the browser.
 
-// The Azure Function publishes fresh data to Blob Storage every morning; site/data is the copy
-// published with the site, used if Blob Storage can't be reached. Anywhere but the live site
-// (a local preview), the local copy comes first.
-const BLOB = "https://stgridcarbon108eb8.blob.core.windows.net/data";
-const DATA_SOURCES = location.hostname.endsWith("github.io") ? [BLOB, "data"] : ["data", BLOB];
+// A GitHub Actions job refreshes the data every morning and publishes it to the uk-grid-carbon
+// repository's GitHub Pages site; site/data is the copy published with this page, used if that
+// can't be reached. Anywhere but the live site (a local preview), the local copy comes first.
+const LIVE_DATA = "https://tristanbowdenfreeman-maker.github.io/uk-grid-carbon";
+const DATA_SOURCES = location.hostname.endsWith("github.io") ? [LIVE_DATA, "data"] : ["data", LIVE_DATA];
 const LIVE_API = "https://api.carbonintensity.org.uk";
 
 const TARGET = 95;            // Clean Power 2030: at least 95% of GB generation from clean sources
@@ -251,10 +251,10 @@ async function powerLine() {
     [`${s.sources} public APIs`, "NESO, Octopus and more",
       ["Where the data comes from", "NESO Data Portal: generation since 2009 and the 2030 capacity plans", "Carbon Intensity API: the regional mix",
         "Octopus Energy: Agile prices", "Open-Meteo: wind speed", `${num(s.api_downloads)} downloads, ${num(s.raw_mb_compressed)} MB compressed`]],
-    ["Python", "on Azure, every morning",
-      ["Azure Function", "A timer runs it at 05:30 each morning", "It fetches only what's new and saves the raw JSON"]],
-    ["Azure SQL", `${compactRows(factRows(s))} rows`,
-      ["Azure SQL database", "T-SQL turns the raw JSON into a star schema", "Views do the sums for each chart on this page"]],
+    ["Python", "on GitHub Actions, every morning",
+      ["GitHub Actions", "A scheduled job runs it each morning", "It fetches only what's new and saves the raw JSON"]],
+    ["DuckDB", `${compactRows(factRows(s))} rows`,
+      ["DuckDB warehouse", "SQL turns the raw JSON into a star schema", "Views do the sums for each chart on this page"]],
     [`${checks.length} checks`, blockingFailed ? "a blocking check failed" : warnings.length ? `run daily, ${warnings.length} flag API gaps` : "run daily, all passing",
       ["Data quality checks, every run", `${blocking.length - blocking.filter((c) => c.failures).length} of ${blocking.length} blocking checks pass (a failure stops the export)`,
         ...warnings.map((c) => `Warning: ${c.check_name.toLowerCase()} (${num(c.failures)})`)]],
@@ -850,11 +850,11 @@ const DIMS = [
   ["point", "dim.weather_point", "A weather point in each region, plus Dogger Bank for offshore wind"],
 ];
 const FACTS = [
-  ["fact.gb_generation", "gb_generation_rows", ["date", "fuel"], "Megawatts by fuel for every half-hour since 2009 (NESO). Columnstore"],
+  ["fact.gb_generation", "gb_generation_rows", ["date", "fuel"], "Megawatts by fuel for every half-hour since 2009 (NESO)"],
   ["fact.national_intensity", "national_periods", ["date"], "GB carbon intensity per half-hour, forecast and actual"],
   ["fact.national_mix", "national_mix_rows", ["date", "fuel"], "GB share by fuel per half-hour since 2018"],
   ["fact.regional_intensity", "regional_periods", ["date", "region"], "Each region's carbon intensity per half-hour"],
-  ["fact.regional_mix", "regional_mix_rows", ["date", "region", "fuel"], "Each region's share by fuel per half-hour, the biggest table. Columnstore"],
+  ["fact.regional_mix", "regional_mix_rows", ["date", "region", "fuel"], "Each region's share by fuel per half-hour, the biggest table"],
   ["fact.price", "price_rows", ["date", "region"], "Octopus Agile price per region and half-hour"],
   ["fact.weather_hourly", "weather_rows", ["point"], "Hourly wind, sun and temperature at each point (ERA5)"],
   ["fact.capacity", "capacity_rows", [], "GW built, planned and needed by 2030 for four technologies"],
@@ -863,9 +863,9 @@ const FACTS = [
 const SQL_PACE = `-- mart.v_on_track (shortened): the recent pace is a least-squares
 -- slope through the last seven full years, so one odd year doesn't swing it.
 fit AS (
-    SELECT (COUNT(*) * SUM([year] * clean_pct) - SUM([year]) * SUM(clean_pct))
-           / NULLIF(COUNT(*) * SUM(CAST([year] AS FLOAT) * [year])
-                    - SUM(CAST([year] AS FLOAT)) * SUM([year]), 0) AS slope
+    SELECT (COUNT(*) * SUM(year * clean_pct) - SUM(year) * SUM(clean_pct))
+           / NULLIF(COUNT(*) * SUM(CAST(year AS DOUBLE) * year)
+                    - SUM(CAST(year AS DOUBLE)) * SUM(year), 0) AS slope
     FROM years
 )
 SELECT n.l12m                                       AS clean_l12m,
@@ -877,12 +877,11 @@ FROM now AS n CROSS JOIN fit AS f;`;
 const SQL_CLEAN = `-- mart.v_gb_annual (simplified): the clean share of electricity generated
 -- in Britain. Imports are left out of the total, as in the 95% target.
 SELECT period,
-       100.0 * SUM(CASE WHEN f.is_low_carbon = 1 THEN g.mw END) / SUM(g.mw) AS clean_pct
+       100.0 * SUM(CASE WHEN f.is_low_carbon THEN g.mw END) / SUM(g.mw) AS clean_pct
 FROM fact.gb_generation AS g
 JOIN dim.fuel AS f ON f.fuel_id = g.fuel_id
-CROSS APPLY (VALUES (CAST(g.date_key / 10000 AS VARCHAR(4))),      -- calendar year
-                    (CASE WHEN g.period_start_utc > @year_ago THEN 'L12M' END)
-            ) AS t (period)
+CROSS JOIN LATERAL (SELECT unnest([CAST(g.date_key // 10000 AS VARCHAR),   -- calendar year
+                                   CASE WHEN g.period_start_utc > $year_ago THEN 'L12M' END]) AS period) AS t
 WHERE t.period IS NOT NULL AND f.fuel_key <> 'imports'
 GROUP BY period;`;
 
@@ -942,7 +941,7 @@ async function renderMethod(ticket) {
     <section class="card reveal" id="model">
       <div class="card-head"><div>
         <h2>Data model</h2>
-        <p class="lede">A star schema in Azure SQL with ${num(factRows(s))} fact rows. Raw JSON lands in a staging table and stored procedures load it into the facts and dimensions. One view per chart does the sums. Hover over a table to see what it holds.</p>
+        <p class="lede">A star schema in DuckDB with ${num(factRows(s))} fact rows. Each download is parsed straight into the facts and dimensions. One view per chart does the sums. Hover over a table to see what it holds.</p>
       </div></div>
       <div class="schema">
         <svg class="schema__links" aria-hidden="true"></svg>
@@ -982,8 +981,8 @@ async function renderMethod(ticket) {
         <p class="lede">The two queries the headline rests on. The full scripts are <a href="${REPO}">on GitHub</a>.</p>
       </div></div>
       <div class="code-grid">
-        <figure><figcaption>The clean share · <a href="${REPO}/4_marts/03_v_gb_annual.sql">03_v_gb_annual.sql</a></figcaption><pre><code>${esc(SQL_CLEAN)}</code></pre></figure>
-        <figure><figcaption>Pace and projection · <a href="${REPO}/4_marts/04_v_on_track.sql">04_v_on_track.sql</a></figcaption><pre><code>${esc(SQL_PACE)}</code></pre></figure>
+        <figure><figcaption>The clean share · <a href="${REPO}/2_marts/03_v_gb_annual.sql">03_v_gb_annual.sql</a></figcaption><pre><code>${esc(SQL_CLEAN)}</code></pre></figure>
+        <figure><figcaption>Pace and projection · <a href="${REPO}/2_marts/04_v_on_track.sql">04_v_on_track.sql</a></figcaption><pre><code>${esc(SQL_PACE)}</code></pre></figure>
       </div>
     </section>
   </div>`;

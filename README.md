@@ -3,8 +3,8 @@
 I built this to see whether Britain is on track for the government's target of 95% clean
 electricity by 2030. It uses every half-hour of Great Britain's generation since 2009, NESO's
 capacity plans set against the Clean Power 2030 target, and eight years of regional mix, Octopus
-Agile prices and weather. That's over 30 million rows, refreshed every morning by an Azure
-pipeline and shown in a two-page interactive dashboard.
+Agile prices and weather. That's over 30 million rows, refreshed every morning by a free
+GitHub Actions pipeline and shown in a two-page interactive dashboard.
 
 **Live:** https://tristanbowdenfreeman-maker.github.io/tiny-summit/carbon/ (part of my
 [portfolio](https://tristanbowdenfreeman-maker.github.io/tiny-summit/))
@@ -34,7 +34,7 @@ The site's figures update with the data, so they may have moved on from these.
   nuclear, as a share of all electricity generated in Britain. Imports are left out of the total, as
   they are in the Clean Power 2030 target. Which fuels count as clean is set in one place, the
   `is_low_carbon` flag in `dim.fuel`.
-- **Current pace** is a least-squares slope through the last seven full years, worked out in T-SQL,
+- **Current pace** is a least-squares slope through the last seven full years, worked out in SQL,
   so one unusual year doesn't swing it. **Needed pace** is the straight line from the last 12
   months to 95% in mid-2030.
 - **The 2030 projection is a straight line.** Real growth comes in steps as big wind farms
@@ -45,12 +45,11 @@ The site's figures update with the data, so they may have moved on from these.
 - **Regional mixes are estimates** from the Carbon Intensity API's power-flow model. **Prices** are one
   retail tariff that tracks the wholesale market. **Weather** is one point per region.
 - **Gaps in the source data** (a few hundred missing half-hours from the APIs, each under 0.5%)
-  are counted by the data checks in [5_checks](sql/5_checks).
+  are counted by the data checks in [3_checks](sql/3_checks).
 
 ## Data model
 
-A star schema: eight fact tables share four dimensions. The two biggest tables use clustered
-columnstore indexes because the marts scan whole years at a time.
+A star schema: eight fact tables share four dimensions. DuckDB stores them by column, which suits marts that scan whole years at a time.
 
 ```mermaid
 erDiagram
@@ -88,34 +87,35 @@ and is keyed on technology and year.
 ```
 NESO Data Portal     ─┐
 Carbon Intensity API  │
-Octopus Agile prices  ├─► Azure Function ─► stg    raw JSON, gzip, one row per source and window
-Open-Meteo (ERA5)    ─┘   (Python, timer)    │     T-SQL stored procedures (OPENJSON)
-                                             ▼
-                          Azure SQL         dim + fact   star schema (columnstore for the big one)
-                          (serverless)       │     views
-                                             ▼
-                                            mart ─► data checks ─► JSON ─► Blob Storage ─► website
+Octopus Agile prices  ├─► GitHub Actions ─► stg    raw JSON on disk, one row per source and window
+Open-Meteo (ERA5)    ─┘   (Python, cron)     │     Python loaders + SQL (DuckDB)
+                                              ▼
+                          DuckDB file        dim + fact   star schema
+                                              │     views
+                                              ▼
+                                             mart ─► data checks ─► JSON ─► GitHub Pages ─► website
 ```
 
-1. **An Azure Function** runs at 05:30 UTC every day. It downloads any new or unsettled date
-   windows and saves each one, compressed and untouched, into `stg.api_raw`.
-2. **Stored procedures** parse the JSON into `dim` and `fact` tables, a window at a time, each
-   in its own transaction. Re-loading a window replaces its rows, so every step is re-runnable.
+1. **A scheduled GitHub Actions job** ([daily.yml](.github/workflows/daily.yml)) runs at 05:17 UTC
+   every day. It downloads any new or unsettled date windows and logs each one in `stg.api_raw`.
+2. **Loaders** in [transform.py](src/grid_carbon/transform.py) parse the JSON into `dim` and `fact`
+   tables, a window at a time, each in its own transaction. Re-loading a window replaces its
+   rows, so every step is re-runnable.
 3. **Views** in `mart` do the analysis, one per visual: the yearly mix since 2009, the trend
-   against the pace 2030 needs ([04_v_on_track.sql](sql/4_marts/04_v_on_track.sql), a
-   least-squares slope in T-SQL), capacity against target, regional clean shares, and each
-   region's half-hours joined to price and wind ([08_v_region_half_hour.sql](sql/4_marts/08_v_region_half_hour.sql)).
+   against the pace 2030 needs ([04_v_on_track.sql](sql/2_marts/04_v_on_track.sql), a
+   least-squares slope), capacity against target, regional clean shares, and each
+   region's half-hours joined to price and wind ([08_v_region_half_hour.sql](sql/2_marts/08_v_region_half_hour.sql)).
 4. **Data-quality checks** run next. A blocking failure stops the export, so the site keeps its
    last good data. Non-blocking ones (gaps in the source) are saved with the export
    (`data_checks.json`) and the export goes ahead.
-5. **The export** writes each mart view to JSON in a public Blob Storage container, which the
-   website reads. The site falls back to its own copy if Blob Storage can't be reached.
+5. **The export** writes each mart view to JSON and force-pushes the files to the `data` branch,
+   which GitHub Pages serves. The site falls back to its own copy if that can't be reached.
 
-Why these choices: Azure SQL's serverless free offer pauses itself when idle and gives 100,000
-vCore-seconds a month. It stays awake for an hour after each run, so one run a day uses about
-half of that, and if the allowance ever ran out it would pause until the next month and never
-charge. Keeping raw JSON in staging means a change to the model only needs a reload from staging,
-without downloading seventeen years of data again.
+Why these choices: the whole thing costs nothing. The repository is public, so Actions and Pages
+are free, and DuckDB is a single file, so there is no database server to pay for or pause. The
+file is kept between runs as the asset of a release called `warehouse`; if it is deleted the job
+rebuilds it from the sources in a few hours. The daily push to the `data` branch also counts as
+repository activity, so GitHub doesn't switch the schedule off after 60 quiet days.
 
 ## Where to look
 
@@ -123,42 +123,34 @@ without downloading seventeen years of data again.
 
 | Folder | What's in it |
 |---|---|
-| [0_setup](sql/0_setup) | Schemas |
-| [1_staging](sql/1_staging) | The raw-JSON table and its upsert procedure |
-| [2_model](sql/2_model) | `dim_date`, `dim_region`, `dim_fuel`, `dim_weather_point` and eight fact tables |
-| [3_etl](sql/3_etl) | One load procedure per source; [04_usp_load_regional.sql](sql/3_etl/04_usp_load_regional.sql) is the biggest |
-| [4_marts](sql/4_marts) | One view per visual; [04_v_on_track.sql](sql/4_marts/04_v_on_track.sql) is the headline, [10_v_region_wind.sql](sql/4_marts/10_v_region_wind.sql) grid to weather |
-| [5_checks](sql/5_checks) | Data-quality checks, one row per check |
+| [1_model](sql/1_model) | Schemas, the raw-JSON log, `dim.date`, `dim.region`, `dim.fuel`, `dim.weather_point` and eight fact tables |
+| [2_marts](sql/2_marts) | One view per visual; [04_v_on_track.sql](sql/2_marts/04_v_on_track.sql) is the headline, [10_v_region_wind.sql](sql/2_marts/10_v_region_wind.sql) grid to weather |
+| [3_checks](sql/3_checks) | Data-quality checks, one row per check |
 
 **Python** (`src/grid_carbon/`)
 
 | File | What it does |
 |---|---|
 | [sources.py](src/grid_carbon/sources.py) | The APIs, how history is split into date windows, retries |
-| [pipeline.py](src/grid_carbon/pipeline.py) | Works out which windows need fetching and stages them |
-| [transform.py](src/grid_carbon/transform.py) | Runs the load procedures and the checks |
-| [export.py](src/grid_carbon/export.py) | Mart views to JSON, locally and to Blob Storage |
-| [db.py](src/grid_carbon/db.py) | Connects to Azure SQL and runs the `sql/` scripts |
-
-**Azure:** [infra/deploy.sh](infra/deploy.sh) creates everything (resource group, SQL server and
-free serverless database, storage account, Function App) and is safe to re-run;
-[function_app/](function_app) is the timer-triggered function.
+| [pipeline.py](src/grid_carbon/pipeline.py) | Works out which windows need fetching and downloads them |
+| [transform.py](src/grid_carbon/transform.py) | Loads the facts from the downloaded windows and runs the checks |
+| [export.py](src/grid_carbon/export.py) | Mart views to JSON |
+| [warehouse.py](src/grid_carbon/warehouse.py) | Opens the DuckDB file and runs the `sql/` scripts |
 
 ## Run it
 
-Needs Python 3.12, the Azure CLI and an Azure subscription.
+Needs Python 3.12. No accounts or keys.
 
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt && pip install -e .
 
-az login
-infra/deploy.sh                       # creates the Azure resources and writes .env
-python -m grid_carbon setup-db        # schemas, tables, procedures, views
 python -m grid_carbon run             # fetch, transform, check, export (first run backfills 2009 on)
-infra/publish_function.sh             # deploy the daily function
 python -m grid_carbon status          # rows at every stage
 ```
+
+The warehouse is `warehouse/grid.duckdb` and raw downloads are cached in `raw/`
+(both git-ignored). The first full run downloads about 1,300 windows and takes a couple of hours.
 
 To work on the site: `python -m http.server --directory site` (it reads the last export in
 `site/data`). `python tools/build_map.py <geojson>` rebuilds the region map from NESO's DNO

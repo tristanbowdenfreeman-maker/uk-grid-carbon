@@ -1,14 +1,12 @@
-"""Download each source window into stg.api_raw, skipping windows already staged in full."""
+"""Download each source window to disk and log it in stg.api_raw, skipping windows already fetched in full."""
 
 import gzip
 from datetime import datetime, timedelta, timezone
 
-import pymssql
+import duckdb
 
-from grid_carbon.config import PROJECT_ROOT
+from grid_carbon.config import RAW_DIR
 from grid_carbon.sources import Downloader, Window, all_windows
-
-CACHE_DIR = PROJECT_ROOT / "raw"  # local runs only (see Downloader)
 
 # A window is final once it ended this long before it was downloaded: by then the Carbon
 # Intensity API has its actual values and the weather archive has caught up (about 5 days).
@@ -16,11 +14,10 @@ SETTLE = timedelta(days=7)
 CAPACITY_REFRESH = timedelta(days=7)  # NESO publishes these a few times a year
 
 
-def windows_to_fetch(conn: pymssql.Connection, now: datetime | None = None) -> list[Window]:
+def windows_to_fetch(conn: duckdb.DuckDBPyConnection, now: datetime | None = None) -> list[Window]:
     now = now or datetime.now(timezone.utc).replace(tzinfo=None)
-    cursor = conn.cursor()
-    cursor.execute("SELECT source, window_start, window_end, fetched_at FROM stg.api_raw")
-    staged = {(source, start): (end, fetched) for source, start, end, fetched in cursor.fetchall()}
+    rows = conn.execute("SELECT source, window_start, window_end, fetched_at FROM stg.api_raw").fetchall()
+    staged = {(source, start): (end, fetched) for source, start, end, fetched in rows}
     todo = []
     for window in all_windows(now.date()):
         found = staged.get((window.source, window.start))
@@ -36,16 +33,16 @@ def windows_to_fetch(conn: pymssql.Connection, now: datetime | None = None) -> l
     return todo
 
 
-def fetch(conn: pymssql.Connection, downloader: Downloader | None = None, limit: int | None = None) -> int:
-    downloader = downloader or Downloader(cache=CACHE_DIR if CACHE_DIR.parent.joinpath("pyproject.toml").exists() else None)
+def fetch(conn: duckdb.DuckDBPyConnection, downloader: Downloader | None = None, limit: int | None = None) -> int:
+    downloader = downloader or Downloader(cache=RAW_DIR)
     todo = windows_to_fetch(conn)[:limit]
-    cursor = conn.cursor()
     for i, window in enumerate(todo, start=1):
-        payload = downloader.fetch(window)
-        # Stored GZIP-compressed, the same format as T-SQL COMPRESS, so DECOMPRESS reads it.
-        cursor.execute(
-            "EXEC stg.usp_save_raw @source = %s, @window_start = %s, @window_end = %s, @payload_gz = %s",
-            (window.source, window.start, window.end, gzip.compress(payload.encode("utf-16-le"))),
+        path = downloader.fetch(window)
+        # loaded_at is cleared, so the loaders pick the window up again.
+        conn.execute(
+            "INSERT OR REPLACE INTO stg.api_raw VALUES (?, ?, ?, ?, ?, NULL)",
+            [window.source, window.start, window.end, len(gzip.compress(path.read_bytes(), 1)),
+             datetime.now(timezone.utc).replace(tzinfo=None)],
         )
         if i % 25 == 0 or i == len(todo):
             print(f"  {i:,} of {len(todo):,} windows downloaded")

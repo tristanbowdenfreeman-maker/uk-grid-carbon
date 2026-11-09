@@ -1,0 +1,66 @@
+name: Daily refresh
+
+# Every morning: download what's new, load it into the DuckDB warehouse, check it, and publish
+# the site's JSON to the `data` branch (served by GitHub Pages). Free: the repository is public,
+# so Actions minutes and Pages cost nothing, and there is no cloud account behind it.
+#
+# The warehouse (warehouse/grid.duckdb) is kept between runs as the asset of a release called
+# `warehouse`. If it is missing the job rebuilds it from the sources, which takes a few hours.
+
+on:
+  schedule:
+    - cron: "17 5 * * *"  # 05:17 UTC, off the busy :00 and :30 marks
+  workflow_dispatch:
+
+permissions:
+  contents: write  # the warehouse release and the data branch
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt && pip install -e .
+
+      - name: Restore the warehouse
+        run: |
+          mkdir -p warehouse
+          gh release download warehouse --pattern grid.duckdb --dir warehouse \
+            || echo "No saved warehouse yet: it will be built from the sources"
+
+      - name: Fetch, load, check and export
+        run: python -u -m grid_carbon run
+
+      - name: Save the warehouse
+        run: |
+          gh release view warehouse > /dev/null 2>&1 \
+            || gh release create warehouse --title "Warehouse" \
+                 --notes "The DuckDB warehouse the daily refresh keeps between runs. Replaced every day; safe to delete (the job rebuilds it)."
+          gh release upload warehouse warehouse/grid.duckdb --clobber
+
+      - name: Publish the site data
+        run: |
+          rm -rf publish && mkdir publish
+          cp site/data/*.json publish/
+          touch publish/.nojekyll
+          cd publish
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Data for $(date -u +%F)"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data

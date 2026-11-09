@@ -1,3 +1,4 @@
+from pathlib import Path
 from datetime import date
 
 from grid_carbon.sources import FIRST_DAY, TARIFF_REGIONS, Downloader, Window, all_windows
@@ -46,7 +47,7 @@ def test_price_windows_split_where_the_agile_version_changes():
 
     class Fake(Downloader):
         def __init__(self):
-            super().__init__(pause=0)
+            super().__init__(cache=Path("."), pause=0)
             self.calls = []
 
         def agile_products(self):

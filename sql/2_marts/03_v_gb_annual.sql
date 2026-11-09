@@ -2,8 +2,7 @@
 -- ('L12M') and the 12 months before them ('P12M'). Shares are of electricity generated in
 -- Britain, so imports are left out of the total: the measure Clean Power 2030 sets its 95%
 -- target on. Clean = wind, solar, hydro, biomass and nuclear.
-CREATE OR ALTER VIEW mart.v_gb_annual
-AS
+CREATE OR REPLACE VIEW mart.v_gb_annual AS
 WITH latest AS (
     SELECT MAX(period_start_utc) AS last_period FROM fact.gb_generation
 ),
@@ -12,12 +11,14 @@ tagged AS (
     FROM fact.gb_generation AS g
     JOIN dim.fuel AS f ON f.fuel_id = g.fuel_id
     CROSS JOIN latest AS l
-    CROSS APPLY (VALUES
-        (CAST(g.date_key / 10000 AS VARCHAR(4))),
-        (CASE WHEN g.period_start_utc > DATEADD(YEAR, -1, l.last_period) THEN 'L12M' END),
-        (CASE WHEN g.period_start_utc > DATEADD(YEAR, -2, l.last_period)
-               AND g.period_start_utc <= DATEADD(YEAR, -1, l.last_period) THEN 'P12M' END)
-    ) AS t (period)
+    CROSS JOIN LATERAL (
+        SELECT unnest([
+            CAST(g.date_key // 10000 AS VARCHAR),
+            CASE WHEN g.period_start_utc > l.last_period - INTERVAL 1 YEAR THEN 'L12M' END,
+            CASE WHEN g.period_start_utc > l.last_period - INTERVAL 2 YEAR
+                  AND g.period_start_utc <= l.last_period - INTERVAL 1 YEAR THEN 'P12M' END
+        ]) AS period
+    ) AS t
     WHERE t.period IS NOT NULL AND f.fuel_key <> 'imports'
 ),
 totals AS (
@@ -31,13 +32,13 @@ totals AS (
            SUM(CASE WHEN fuel_key = 'gas' THEN mw END)                   AS gas,
            SUM(CASE WHEN fuel_key = 'coal' THEN mw END)                  AS coal,
            SUM(CASE WHEN fuel_key IN ('other', 'storage') THEN mw END)   AS other,
-           SUM(CASE WHEN is_low_carbon = 1 THEN mw END)                  AS clean
+           SUM(CASE WHEN is_low_carbon THEN mw END)                      AS clean
     FROM tagged
     GROUP BY period
 )
 SELECT period,
        half_hours,
-       CAST(generated / 2 / 1e6 AS DECIMAL(6, 1))        AS generated_twh,  -- MW over a half-hour = MWh / 2
+       CAST(generated / 2 / 1e6 AS DECIMAL(6, 1))           AS generated_twh,  -- MW over a half-hour = MWh / 2
        CAST(100 * wind / generated AS DECIMAL(4, 1))        AS wind_pct,
        CAST(100 * solar / generated AS DECIMAL(4, 1))       AS solar_pct,
        CAST(100 * nuclear / generated AS DECIMAL(4, 1))     AS nuclear_pct,
@@ -47,4 +48,3 @@ SELECT period,
        CAST(100 * other / generated AS DECIMAL(4, 1))       AS other_pct,
        CAST(100 * clean / generated AS DECIMAL(4, 1))       AS clean_pct
 FROM totals;
-GO
