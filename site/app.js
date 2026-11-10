@@ -271,6 +271,25 @@ async function powerLine() {
 
 const regionL12m = (summary, id) => summary.find((r) => r.period === "L12M" && r.region_id === id);
 
+// The strip under the headline: one block per year from the first year of data to 2030, coloured
+// by clean share. The current year shows the last 12 months, later years are hatched and 2030 is the target.
+function yearStripes(fullYears, t, thisYear) {
+  const first = fullYears[0].year;
+  const cells = [];
+  for (let year = first; year <= 2030; year++) {
+    const row = fullYears.find((r) => r.year === year);
+    const at = `--i:${year - first}`;
+    if (row) cells.push(`<i style="--c:${cleanColour(row.clean_pct)};${at}" data-tip="${year}\n${pct(row.clean_pct)} clean"></i>`);
+    else if (year === thisYear) cells.push(`<i class="is-now" style="--c:${cleanColour(t.clean_l12m)};${at}" data-label="Now ${pct(t.clean_l12m)}" data-tip="Last 12 months\n${pct(t.clean_l12m)} clean"></i>`);
+    else if (year === 2030) cells.push(`<i class="is-target" style="${at}" data-tip="2030\nThe target: ${TARGET}% clean"></i>`);
+    else cells.push(`<i class="is-ahead" style="${at}" data-tip="${year}\nStill to come"></i>`);
+  }
+  return `<div class="stripes" role="img" aria-label="Clean share each year: ${pct(fullYears[0].clean_pct)} in ${first}, ${pct(t.clean_l12m)} over the last 12 months, and a target of ${TARGET}% in 2030">
+      <div class="stripes__row" style="--n:${cells.length}">${cells.join("")}</div>
+      <div class="stripes__ends"><span><b>${first}</b> ${pct(fullYears[0].clean_pct)} clean</span><span><b>2030</b> target ${TARGET}%</span></div>
+    </div>`;
+}
+
 // ---------- Page 1: Are we on track? ----------
 
 async function renderTrack(ticket) {
@@ -305,6 +324,7 @@ async function renderTrack(ticket) {
         ${picked ? `<p class="region-note">${esc(regionName(state.region))} ran on ${pct(picked.clean_pct)} clean power over the same 12 months.</p>` : ""}
       </div>
     </section>
+    ${yearStripes(fullYears, t, lastPeriod.getUTCFullYear())}
     </div>
 
     <section class="card reveal" id="trajectory">

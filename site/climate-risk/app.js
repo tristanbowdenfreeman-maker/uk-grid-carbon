@@ -129,6 +129,19 @@ function shade(value, max) {
   return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
 }
 
+// The strip under the headline: one block per replayed year, darker for a costlier year.
+function lossStripes(gb) {
+  const rows = gb.history.map((r) => ({ ...r, total: r.storm + (r.flood ?? 0) }));
+  const max = Math.max(...rows.map((r) => r.total));
+  const worst = rows.reduce((a, b) => (a.total > b.total ? a : b));
+  const cells = rows.map((r, i) => `<i${r === worst ? ` class="is-worst${i > rows.length / 2 ? " is-late" : ""}" data-label="${r.year} ${money(r.total)}"` : ""}
+      style="--c:${shade(r.total, max)};--i:${i}" data-tip="${esc(`${r.year}\n${money(r.total)} as-if loss\nWindstorm ${money(r.storm)}\nFlood ${r.flood == null ? "no data before 2006" : money(r.flood)}`)}"></i>`);
+  return `<div class="stripes" role="img" aria-label="As-if loss in each year from ${rows[0].year} to ${rows.at(-1).year}. The worst was ${worst.year} at ${money(worst.total)}">
+      <div class="stripes__row" style="--n:${rows.length}">${cells.join("")}</div>
+      <div class="stripes__ends"><span><b>${rows[0].year}</b> as-if loss each year, darker is costlier</span><span><b>${rows.at(-1).year}</b></span></div>
+    </div>`;
+}
+
 function drawMap(el, map, regions) {
   const max = Math.max(...regions.map((r) => r.risk_cost_per_property));
   const paths = regions.map((r) => `<path d="${map.regions[r.region_id]}" fill="${shade(r.risk_cost_per_property, max)}" tabindex="0"
@@ -248,6 +261,7 @@ async function render() {
         <li><strong>${money(gb.rp10)}</strong><span>1-in-10 year</span></li>
         <li><strong>${money(gb.rp200)}</strong><span>1-in-200 year</span></li>
       </ul>
+      ${lossStripes(gb)}
     </section>
 
     <section class="card">
