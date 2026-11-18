@@ -274,7 +274,9 @@ def _capacity_rows(payload: dict) -> list[tuple[str, int, str, str, float]]:
     for record in payload["adequacy"]:
         technology = _ADEQUACY_TECHNOLOGY.get(record.get("Technology"))
         if technology and record.get("Future Year") == "2030/31":
-            target[technology] = target.get(technology, 0.0) + float(record["Installed Capacity (MW)"])
+            # NESO renamed this column in November 2026; older cached downloads use the old name.
+            mw = record.get("Installed_Capacity_in_MW", record.get("Installed Capacity (MW)"))
+            target[technology] = target.get(technology, 0.0) + float(mw)
     out += [(technology, 2030, "target", "NESO Clean Power 2030 portfolio", mw) for technology, mw in target.items()]
     return out
 
